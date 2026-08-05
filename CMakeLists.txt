@@ -27,7 +27,8 @@ find_package(OpenMP REQUIRED)
 # ── Executable ────────────────────────────────────────────────────────────────
 add_executable(${PROJECT_NAME}
     ${PROJECT_SOURCES}
-    ${PROJECT_HEADERS}   # optional: makes headers visible in IDEs
+    ${PROJECT_HEADERS}
+        include/function.hpp   # optional: makes headers visible in IDEs
 #    ${IMGUI_SOURCES}
 #    ${IMGUI_SFML_DIR}/imgui-SFML.cpp
 #        include/renderer.hpp
