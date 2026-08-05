@@ -52,6 +52,36 @@ public:
 };
 
 
+template<uint N, typename T>
+class TargetFunction: public Function<N,T>
+{
+
+    const std::vector<Vec<N,T>> gaussianCenters;
+    const std::vector<T> gaussianSigmas;
+    const std::vector<T> gaussianMags;
+    const std::array<std::vector<T>, N> polynomialCoeffs;
+    const uint numGaussians;
+    std::vector<GaussianFunction<N,T>> gaussians;
+    PolynomialFunction<N,T> polynomial;
+    public: 
+    TargetFunction(polynomialCoeffs, gaussianCenters, gaussianSigmas, gaussianMags): polynomialCoeffs(polynomialCoeffs), gaussianCenters(gaussianCenters), gaussianSigmas(gaussianSigmas), gaussianMags(gaussianMags), numGaussians(gaussianCenters.size()){
+        polynomial = PolynomialFunction<N,T>(polynomialCoeffs);
+        for(uint i = 0; i < numGaussians; i++){
+            gaussians.push_back(GaussianFunction<N,T>(gaussianCenters[i], gaussianSigmas[i], gaussianMags[i]));
+        }   
+    }
+    
+    T value(const Vec<N,T>& p) const override
+    {
+        T result = polynomial.value(p);
+        for(uint i = 0; i < numGaussians; i++){
+            result += gaussians[i].value(p);
+        }
+        return result;
+    }
+};
+
+
 // template<uint N, typename T = double>
 // class InterolatedRBFs: public Function<N,T>
 // {
