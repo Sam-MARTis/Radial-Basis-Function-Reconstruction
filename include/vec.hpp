@@ -90,9 +90,6 @@ struct Vec
         return std::sqrt(sum);
     }
 
-
-
-
 };
 
 // inline double distanceSquared(const Vec2D& p1, const Vec2D& p2)
