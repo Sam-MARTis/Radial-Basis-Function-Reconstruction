@@ -1,59 +1,101 @@
 #pragma once
-
+#include "constants.hpp"
 
 #include <cmath>
+#include <initializer_list>
+#include <stdexcept>
 
-struct Vec2D
+template<uint N, typename T = double>
+struct Vec
 {
-    double x;
-    double y;
-    Vec2D(double x=0, double y=0){ this->x=x; this->y=y; };
-    Vec2D operator+(const Vec2D& other) const
+    std::array<T, N> data;
+    Vec()
     {
-        return {x + other.x, y + other.y};
+        data.fill(T{});
     }
-    void operator+=(const Vec2D& other)
+    explicit Vec(T val)
     {
-        x += other.x;
-        y += other.y;
+        data.fill(val);
     }
-    void operator-=(const Vec2D& other)
+    Vec(std::initializer_list<T> values)
     {
-        x -= other.x;
-        y -= other.y;
+        if (values.size() != N)
+            throw std::invalid_argument("Incorrect number of elements");
+        std::copy(values.begin(), values.end(), data.begin());
     }
-    Vec2D operator*(const double multiplier) const
+    T& operator[](uint i)
     {
-        return {x*multiplier, y*multiplier};
+        return data[i];
     }
-    void operator*=(const double multiplier)
+    const T& operator[](size_t i) const
     {
-        x *= multiplier;
-        y *= multiplier;
+        return data[i];
     }
-    Vec2D operator/(const double divisor) const
+    void operator+=(Vec& vec)
     {
-        const double multiplier = 1./divisor;
-        return {x*multiplier, y*multiplier};
+        for (uint i = 0; i < N; i++)
+        {
+            data[i] += vec.data[i];
+        }
     }
-    Vec2D operator-(const Vec2D& other) const
+    void operator-=(Vec& vec)
     {
-        return {x - other.x, y - other.y};
+        for (uint i = 0; i < N; i++)
+        {
+            data[i] -= vec.data[i];
+        }
     }
-    [[nodiscard]] double norm() const
+    Vec operator+(const Vec& vec) const
     {
-        return sqrt(x*x + y*y);
+        Vec result(*this);
+        result += vec;
+        return result;
     }
-    [[nodiscard]] Vec2D normalized() const
+    Vec operator-(const Vec& vec) const
     {
-        const double magnitude = norm();
-        const double multiplier = 1./(magnitude);
-        return {x*multiplier, y*multiplier};
+        Vec result(*this);
+        result -= vec;
+        return result;
     }
+    void operator*=(const T val)
+    {
+        for (uint i = 0; i < N; i++)
+        {
+            data[i] *= val;
+        }
+    }
+    void operator/=(const T val)
+    {
+        *this *= 1/val;
+    }
+    Vec operator*(const T val) const
+    {
+        Vec result(*this);
+        result *= val;
+        return result;
+    }
+    Vec operator/(const T val) const
+    {
+        Vec result(*this);
+        result /= val;
+        return result;
+    }
+    [[nodiscard]] T norm() const
+    {
+        T sum = 0;
+        for (uint i = 0; i < N; i++)
+        {
+            sum += data[i] * data[i];
+        }
+        return std::sqrt(sum);
+    }
+
+
+
 
 };
 
-inline double distanceSquared(const Vec2D& p1, const Vec2D& p2)
-{
-    return (p1.x - p2.x)*(p1.x - p2.x) + (p1.y - p2.y)*(p1.y - p2.y);
-}
+// inline double distanceSquared(const Vec2D& p1, const Vec2D& p2)
+// {
+//     return (p1.x - p2.x)*(p1.x - p2.x) + (p1.y - p2.y)*(p1.y - p2.y);
+// }
