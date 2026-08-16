@@ -3,7 +3,7 @@
 
 #include "function.hpp"
 #include "matrix.hpp"
-
+#include "mesh.hpp"
 
 
 
@@ -16,7 +16,7 @@ class RBFs{
     Matrix<T> ConnectivityMatrix;
     public:
     RBFs(uint numCells, uint numFunctions, std::unique_ptr<Function<T, N>> function): numRBFs(numFunctions), ConnectivityMatrix(numFunctions, numCells), kernelFunction(std::move(function)) {}
-    void computeConnectivity();
+    void computeConnectivity(const Mesh<T, N> &mesh);
 };
 
 
