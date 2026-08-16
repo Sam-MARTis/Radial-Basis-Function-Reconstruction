@@ -22,7 +22,7 @@ int main()
 
     uint numCells = 500;
     double dt = 0.01;
-    MeshGenerator meshGen(1, Vec<double, 2>{0.0, 1.0}, numCells, MeshType::CARTESIAN);
+    MeshGenerator meshGen(1, Vec<double, 2>{0.0, DOMAIN_X_MAX}, numCells, MeshType::CARTESIAN);
     Mesh<double, 1> mesh = meshGen.generateMesh();
     Solver<double, 1> solver(mesh.edges, mesh.cells, 0.1);
 
@@ -60,7 +60,7 @@ int main()
             {
                 plotY.push_back(avg[0]);
             }
-            ImPlot::SetupAxesLimits(0.0, 1.0, 0.0, 1.5);
+            ImPlot::SetupAxesLimits(0.0, DOMAIN_X_MAX, 0.0, 1.5);
 
             // std::cout<<EnergyLog.data()<<std::endl;
             ImPlot::SetupAxes("x", "u");

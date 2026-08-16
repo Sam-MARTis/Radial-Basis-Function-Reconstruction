@@ -7,6 +7,7 @@ using uint = unsigned int;
 constexpr double DEFAULT_SCREEN_WIDTH = 800;
 constexpr double DEFAULT_SCREEN_HEIGHT = 800;
 
+constexpr double DOMAIN_X_MAX = 10.0;
 
 
 

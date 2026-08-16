@@ -41,7 +41,8 @@ add_executable(${PROJECT_NAME}
         ${IMGUI_SOURCES}
         ${IMGUI_SFML_DIR}/imgui-SFML.cpp
         ${IMPLOT_SOURCES}
-#        include/renderer.hpp
+        include/matrix.hpp
+        #        include/renderer.hpp
 #        include/constants.hpp
 #        include/vec.hpp
 #        include/flag.hpp

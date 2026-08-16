@@ -52,6 +52,8 @@ public:
         return mag*std::exp(-sum / (2 * sigma * sigma));
     }
 };
+
+
 //
 //
 // template<typename T, uint N>

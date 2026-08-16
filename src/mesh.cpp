@@ -19,8 +19,8 @@ Mesh<double, 1> MeshGenerator::generateMesh()
     mesh.meshType = meshType;
 
     double cellSize = (domainBounds[1] - domainBounds[0]) / numberOfCells;
-    double midPoint = (domainBounds[0] + domainBounds[1]) / 2.0;
-
+    // double targetPoint = (domainBounds[0] + domainBounds[1]) / 2.0;
+    double targetPoint = 0.1;
     for (uint i = 0; i < numberOfCells + 1; i++)
     {
         
@@ -39,7 +39,7 @@ Mesh<double, 1> MeshGenerator::generateMesh()
         Vec<double, 1> cellCenter{domainBounds[0] + (i + 0.5) * cellSize};
         mesh.cells.cellCentersPositions.push_back(cellCenter);
         mesh.cells.cellVolumes.push_back(cellSize);
-        mesh.cells.cellAverages.push_back({static_cast<double>(cellCenter[0]< midPoint)});
+        mesh.cells.cellAverages.push_back({static_cast<double>(cellCenter[0]< targetPoint)});
         mesh.cells.edgeIndices.push_back({i, i+1}); 
     }
 
