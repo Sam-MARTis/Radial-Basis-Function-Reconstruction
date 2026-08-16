@@ -3,12 +3,16 @@
 
 #include "vec.hpp"
 #include <vector>
+#include <limits>
+
+
 template<typename T, uint N>
 class Function
 {
 public:
     virtual ~Function() = default;
     virtual T value(const Vec<T, N>& p) const = 0;
+    virtual T influenceRegion() const = 0;
 };
 
 template<typename T, uint N>
@@ -32,6 +36,10 @@ public:
         }
         return result;  
     }
+    T influenceRegion() const override
+    {
+        return std::numeric_limits<T>::infinity();
+    }
 };
 
 template<typename T, uint N>
@@ -51,8 +59,28 @@ public:
         }
         return mag*std::exp(-sum / (2 * sigma * sigma));
     }
+    T influenceRegion() const override
+    {
+        return std::numeric_limits<T>::infinity();
+    }
 };
 
+template<typename T, uint N>
+class WendlandFunction: public Function<T, N>
+{
+    // C^2 wendland function
+    const T invInfluenceRadius;
+public:
+    WendlandFunction(const T influenceRadius): invInfluenceRadius(1.0/influenceRadius){}
+    T value(const Vec<T, N>& p) const override
+    {
+
+        const T r = p.norm() * invInfluenceRadius;
+        if (r > 1.0) return 0;
+        const T a = 1-r;
+        return a*a*a*a * (-4*a + 5);
+    }
+};
 
 //
 //

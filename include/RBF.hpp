@@ -1,6 +1,8 @@
 #pragma once
-#include "function.hpp"
+#include <memory>
 
+#include "function.hpp"
+#include "matrix.hpp"
 
 
 
@@ -9,9 +11,12 @@
 template<typename T, uint N>
 class RBFs{
     uint numRBFs = 0;
-    Function<T, N> kernelFunction;
+    std::unique_ptr<Function<T, N>> kernelFunction;
     std::vector<Vec<T, N>> kernelCenters;
-
+    Matrix<T> ConnectivityMatrix;
+    public:
+    RBFs(uint numCells, uint numFunctions, std::unique_ptr<Function<T, N>> function): numRBFs(numFunctions), ConnectivityMatrix(numFunctions, numCells), kernelFunction(std::move(function)) {}
+    void computeConnectivity();
 };
 
 
