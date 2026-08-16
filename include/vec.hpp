@@ -4,8 +4,10 @@
 #include <cmath>
 #include <initializer_list>
 #include <stdexcept>
+#include <cassert>
+#include <array>
 
-template<uint N, typename T = double>
+template<typename T, uint N>
 struct Vec
 {
     std::array<T, N> data;
@@ -19,8 +21,7 @@ struct Vec
     }
     Vec(std::initializer_list<T> values)
     {
-        if (values.size() != N)
-            throw std::invalid_argument("Incorrect number of elements");
+        assert(N == values.size());
         std::copy(values.begin(), values.end(), data.begin());
     }
     T& operator[](uint i)
@@ -51,7 +52,7 @@ struct Vec
         result += vec;
         return result;
     }
-    Vec operator-(const Vec& vec) const
+    Vec operator-( Vec& vec) 
     {
         Vec result(*this);
         result -= vec;

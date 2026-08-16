@@ -30,6 +30,11 @@ add_executable(${PROJECT_NAME}
     ${PROJECT_HEADERS}
         include/function.hpp
         include/constants.hpp   # optional: makes headers visible in IDEs
+        include/mesh.hpp
+        include/fluid-solver.hpp
+        include/RBF.hpp
+        include/cells.hpp
+        include/constants.hpp
 #    ${IMGUI_SOURCES}
 #    ${IMGUI_SFML_DIR}/imgui-SFML.cpp
 #        include/renderer.hpp
