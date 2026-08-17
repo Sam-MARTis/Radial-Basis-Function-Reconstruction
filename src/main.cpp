@@ -1,10 +1,14 @@
 #include <iostream>
+#include <SFML/Graphics.hpp>
+#include <implot.h>
+
+#include "imgui-SFML.h"
+
 #include "mesh.hpp"
 #include "fluid-solver.hpp"
 #include "vec.hpp"
-#include <SFML/Graphics.hpp>
-#include "imgui-SFML.h"
-#include <implot.h>
+#include "RBF.hpp"
+
 
 int main()
 {
@@ -26,9 +30,16 @@ int main()
     Mesh<double, 1> mesh = meshGen.generateMesh();
     Solver<double, 1> solver(mesh.edges, mesh.cells, 0.1);
 
+    auto kernel = std::make_unique<WendlandFunction<double, 1>>(10.0 * DOMAIN_X_MAX/static_cast<double>(numCells));
+    RBFs<double, 1> rbfs(
+        numCells,
+        numCells,
+        mesh.cells.cellCentersPositions,
+        std::move(kernel)
+        );
 
-
-    int solverPerRender = 10;
+    rbfs.computeConnectivityMatrix(mesh);
+    int solverPerRender = 30;
 
 
     while(window.isOpen()){
@@ -44,14 +55,18 @@ int main()
         ImGui::Begin("Linear advection");
         ImGui::SliderInt("Solver per render", &solverPerRender, 1, 1000);
         // ImPlot::SetNextAxesToFit();
+
+        // rbfs.computeRBFCoefficients(mesh.cells.cellAverages);
         if (ImPlot::BeginPlot("Linear advection"))
         {
             std::vector<double> plotX;
             std::vector<double> plotY;
+            std::vector<double> plotYRBFs;
             plotX.reserve(mesh.cells.cellCentersPositions.size());
             plotY.reserve(mesh.cells.cellAverages.size());
+            plotYRBFs.reserve(mesh.cells.cellAverages.size());
             assert(mesh.cells.cellCentersPositions.size() == mesh.cells.cellAverages.size());
-
+            rbfs.computeRBFCoefficients(plotY);
             for (const auto& pos : mesh.cells.cellCentersPositions)
             {
                 plotX.push_back(pos[0]);
@@ -59,6 +74,10 @@ int main()
             for (const auto& avg : mesh.cells.cellAverages)
             {
                 plotY.push_back(avg[0]);
+            }
+            for (const auto& pos : mesh.cells.cellCentersPositions)
+            {
+                plotYRBFs.push_back(rbfs.value(pos));
             }
             ImPlot::SetupAxesLimits(0.0, DOMAIN_X_MAX, 0.0, 1.5);
 

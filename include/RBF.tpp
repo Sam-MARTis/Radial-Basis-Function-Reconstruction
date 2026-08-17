@@ -1,5 +1,4 @@
-
-#include "RBF.hpp"
+#pragma once
 
 
 template <typename T, uint N>
@@ -14,10 +13,10 @@ void RBFs<T, N>::computeConnectivityMatrix(const Mesh<T, N> &mesh)
         {
             T res = 0;
             const std::array<uint, static_cast<uint>(1) << N>& cellEdgeIndices = mesh.cells.edgeIndices[cellId];
-            const Vec<T, N> ubVec = mesh.edges.vertices[cellEdgeIndices[1]][0] - rbfCenter;
-            const Vec<T, N> lbVec = mesh.edges.vertices[cellEdgeIndices[0]][0] - rbfCenter;
-            T ub = ubVec[0];
-            T lb = lbVec[0];
+            T ub = mesh.edges.vertices[cellEdgeIndices[1]][0][0] - rbfCenter[0];
+            T lb = mesh.edges.vertices[cellEdgeIndices[0]][0][0] - rbfCenter[0];
+            // T ub = ubVec[0];
+            // T lb = lbVec[0];
             T ubAbs = absVal(ub);
             T lbAbs = absVal(lb);
             if (lb*ub <0) // They have different signs

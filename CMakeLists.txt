@@ -42,7 +42,7 @@ add_executable(${PROJECT_NAME}
         ${IMGUI_SFML_DIR}/imgui-SFML.cpp
         ${IMPLOT_SOURCES}
         include/matrix.hpp
-        src/RBF.cpp
+#        src/RBF.cpp
         #        include/renderer.hpp
 #        include/constants.hpp
 #        include/vec.hpp

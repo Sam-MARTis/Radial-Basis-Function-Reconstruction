@@ -32,14 +32,14 @@ struct Vec
     {
         return data[i];
     }
-    void operator+=(Vec& vec)
+    void operator+=(const Vec& vec)
     {
         for (uint i = 0; i < N; i++)
         {
             data[i] += vec.data[i];
         }
     }
-    void operator-=(Vec& vec)
+    void operator-=(const Vec& vec)
     {
         for (uint i = 0; i < N; i++)
         {
@@ -52,7 +52,7 @@ struct Vec
         result += vec;
         return result;
     }
-    Vec operator-( Vec& vec) 
+    Vec operator-(const Vec& vec) const
     {
         Vec result(*this);
         result -= vec;
