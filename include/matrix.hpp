@@ -21,3 +21,14 @@ public:
     [[nodiscard]] uint numRows() const { return rows; }
     [[nodiscard]] uint numColumns() const { return columns; }
 };
+
+template <typename T>
+class MatrixSolver
+{
+public:
+    void jacobiSolver(const Matrix<T> &A, const std::vector<T> &b, std::vector<T> &x, uint maxIterations, T tolerance);
+    void gaussSeidelSolver(const Matrix<T> &A, const std::vector<T> &b, std::vector<T> &x, uint maxIterations, T tolerance);
+};
+
+
+#include "matrix.tpp"

@@ -3,7 +3,7 @@
 
 
 template <typename T, uint N>
-void RBFs<T, N>::computeConnectivity(const Mesh<T, N> &mesh)
+void RBFs<T, N>::computeConnectivityMatrix(const Mesh<T, N> &mesh)
 {
     assert(N==1); // Only implemented for 1D for now
     for (uint rbfId=0; rbfId<numRBFs; rbfId++)

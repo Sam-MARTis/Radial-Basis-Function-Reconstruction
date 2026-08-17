@@ -10,13 +10,17 @@
 
 template<typename T, uint N>
 class RBFs{
-    uint numRBFs = 0;
+    const uint numRBFs;
+    const uint numCells;
     std::unique_ptr<Function<T, N>> kernelFunction;
     std::vector<Vec<T, N>> kernelCenters;
     Matrix<T> ConnectivityMatrix;
+    std::vector<T> coefficients;
     public:
-    RBFs(uint numCells, uint numFunctions, std::unique_ptr<Function<T, N>> function): numRBFs(numFunctions), ConnectivityMatrix(numFunctions, numCells), kernelFunction(std::move(function)) {}
-    void computeConnectivity(const Mesh<T, N> &mesh);
+    RBFs(uint _numCells, uint _numFunctions, std::unique_ptr<Function<T, N>> _function): numRBFs(_numFunctions), numCells(_numCells), ConnectivityMatrix(_numFunctions, _numCells), kernelFunction(std::move(_function)), coefficients(numRBFs) {}
+    void computeConnectivityMatrix(const Mesh<T, N> &mesh);
+
+    void computeRBFCoefficients();
 };
 
 
