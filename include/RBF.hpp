@@ -17,7 +17,7 @@ class RBFs{
     Matrix<T> ConnectivityMatrix;
     std::vector<T> coefficients;
     public:
-    RBFs(uint _numCells, uint _numFunctions, std::vector<Vec<T, N>>& _kernelCenters, std::unique_ptr<Function<T, N>> _function): numRBFs(_numFunctions), numCells(_numCells), kernelCenters(_kernelCenters), ConnectivityMatrix(_numFunctions, _numCells), kernelFunction(std::move(_function)), coefficients(numRBFs) {}
+    RBFs(uint _numCells, uint _numFunctions, std::vector<Vec<T, N>>& _kernelCenters, std::unique_ptr<Function<T, N>> _function): numRBFs(_numFunctions), numCells(_numCells), kernelCenters(_kernelCenters), ConnectivityMatrix(_numCells, _numFunctions), kernelFunction(std::move(_function)), coefficients(numRBFs) {}
     void computeConnectivityMatrix(const Mesh<T, N> &mesh);
     void computeRBFCoefficients(const std::vector<T>& cellAveragesX);
     T value(const Vec<T, N>& point);

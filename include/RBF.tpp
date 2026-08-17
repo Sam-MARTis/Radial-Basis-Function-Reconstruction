@@ -44,7 +44,7 @@ void RBFs<T, N>::computeConnectivityMatrix(const Mesh<T, N> &mesh)
                 else
                 res = kernelFunction->integrate(lbAbs, ubAbs);
             }
-            ConnectivityMatrix(rbfId, cellId) = res;
+                ConnectivityMatrix(cellId, rbfId) = res;
         }
     }
 }
@@ -53,8 +53,10 @@ template <typename T, uint N>
 void RBFs<T, N>::computeRBFCoefficients(const std::vector<T>& cellAveragesX)
 {
     assert(N==1);
+    std::cout << "CellAveragesX.size() = " << cellAveragesX.size() << std::endl;
+    std::cout << "numCells = " << numCells << std::endl;
     assert(cellAveragesX.size() == numCells);
-    MatrixSolver<T>::gaussSeidelSolver(ConnectivityMatrix, cellAveragesX, coefficients, 1000, 1e-6);
+    MatrixSolver<T>::gaussSeidelSolver(ConnectivityMatrix, cellAveragesX, coefficients, 50, 1e-6);
 };
 
 template <typename T, uint N>

@@ -8,7 +8,10 @@ void MatrixSolver<T>::jacobiSolver(const Matrix<T> &A, const std::vector<T> &b, 
 {
     uint n = A.numRows();
     assert(n == A.numColumns());
+    assert(b.size() == n);
+    assert(x.size() == n);
     std::vector<T> x_new(n, 0);
+    bool converged = false;
     for (uint iter = 0; iter < maxIterations; ++iter)
     {
         for (uint i = 0; i < n; ++i)
@@ -34,10 +37,16 @@ void MatrixSolver<T>::jacobiSolver(const Matrix<T> &A, const std::vector<T> &b, 
 
         if (norm < tolerance)
         {
+            x = x_new;
+            converged = true;
             break;
         }
 
         x = x_new;
+    }
+    if (!converged)
+    {
+        std::cerr << "Jacobi method did not converge within the maximum number of iterations." << std::endl;
     }
 }
 
@@ -46,6 +55,7 @@ void MatrixSolver<T>::gaussSeidelSolver(const Matrix<T> &A, const std::vector<T>
 {
     uint n = A.numRows();
     assert(n == A.numColumns());
+    bool converged = false;
     for (uint iter = 0; iter < maxIterations; ++iter)
     {
         std::vector<T> x_old = x;
@@ -71,7 +81,37 @@ void MatrixSolver<T>::gaussSeidelSolver(const Matrix<T> &A, const std::vector<T>
 
         if (norm < tolerance)
         {
+            converged = true;
             break;
         }
     }
+    if (!converged)
+    {
+        std::cerr << "Gauss-Seidel method did not converge within the maximum number of iterations." << std::endl;
+    }
+}
+
+
+template <typename T>
+bool MatrixSolver<T>::checkDiagonalDominance(const Matrix<T> &A)
+{
+    uint n = A.numRows();
+    assert(n == A.numColumns());
+    for (uint i = 0; i < n; ++i)
+    {
+        T diagonalElement = std::abs(A(i, i));
+        T sumOfOtherElements = 0;
+        for (uint j = 0; j < n; ++j)
+        {
+            if (j != i)
+            {
+                sumOfOtherElements += std::abs(A(i, j));
+            }
+        }
+        if (diagonalElement < sumOfOtherElements)
+        {
+            return false;
+        }
+    }
+    return true;
 }

@@ -28,6 +28,7 @@ class MatrixSolver
 public:
     static void jacobiSolver(const Matrix<T> &A, const std::vector<T> &b, std::vector<T> &x, uint maxIterations, T tolerance);
     static void gaussSeidelSolver(const Matrix<T> &A, const std::vector<T> &b, std::vector<T> &x, uint maxIterations, T tolerance);
+    [[nodiscard]] static bool checkDiagonalDominance(const Matrix<T> &A);
 };
 
 

@@ -30,7 +30,7 @@ int main()
     Mesh<double, 1> mesh = meshGen.generateMesh();
     Solver<double, 1> solver(mesh.edges, mesh.cells, 0.1);
 
-    auto kernel = std::make_unique<WendlandFunction<double, 1>>(10.0 * DOMAIN_X_MAX/static_cast<double>(numCells));
+    auto kernel = std::make_unique<WendlandFunction<double, 1>>(100 * DOMAIN_X_MAX/static_cast<double>(numCells));
     RBFs<double, 1> rbfs(
         numCells,
         numCells,
@@ -66,7 +66,6 @@ int main()
             plotY.reserve(mesh.cells.cellAverages.size());
             plotYRBFs.reserve(mesh.cells.cellAverages.size());
             assert(mesh.cells.cellCentersPositions.size() == mesh.cells.cellAverages.size());
-            rbfs.computeRBFCoefficients(plotY);
             for (const auto& pos : mesh.cells.cellCentersPositions)
             {
                 plotX.push_back(pos[0]);
@@ -75,6 +74,7 @@ int main()
             {
                 plotY.push_back(avg[0]);
             }
+            rbfs.computeRBFCoefficients(plotY);
             for (const auto& pos : mesh.cells.cellCentersPositions)
             {
                 plotYRBFs.push_back(rbfs.value(pos));
@@ -85,6 +85,7 @@ int main()
             ImPlot::SetupAxes("x", "u");
 
             ImPlot::PlotLine("u", plotX.data(), plotY.data(), static_cast<int>(plotY.size()));
+            ImPlot::PlotLine("u_RBFs", plotX.data(), plotYRBFs.data(), static_cast<int>(plotYRBFs.size()));
             ImPlot::EndPlot();
         }
         for (uint iter= 0; iter< solverPerRender; iter++)
