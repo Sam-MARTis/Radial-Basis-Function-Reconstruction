@@ -26,8 +26,8 @@ template <typename T>
 class MatrixSolver
 {
 public:
-    void jacobiSolver(const Matrix<T> &A, const std::vector<T> &b, std::vector<T> &x, uint maxIterations, T tolerance);
-    void gaussSeidelSolver(const Matrix<T> &A, const std::vector<T> &b, std::vector<T> &x, uint maxIterations, T tolerance);
+    static void jacobiSolver(const Matrix<T> &A, const std::vector<T> &b, std::vector<T> &x, uint maxIterations, T tolerance);
+    static void gaussSeidelSolver(const Matrix<T> &A, const std::vector<T> &b, std::vector<T> &x, uint maxIterations, T tolerance);
 };
 
 

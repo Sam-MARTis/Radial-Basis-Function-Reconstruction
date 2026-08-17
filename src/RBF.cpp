@@ -49,3 +49,29 @@ void RBFs<T, N>::computeConnectivityMatrix(const Mesh<T, N> &mesh)
         }
     }
 }
+
+template <typename T, uint N>
+void RBFs<T, N>::computeRBFCoefficients(const std::vector<T>& cellAveragesX)
+{
+    assert(N==1);
+    assert(cellAveragesX.size() == numCells);
+    MatrixSolver<T>::gaussSeidelSolver(ConnectivityMatrix, cellAveragesX, coefficients, 1000, 1e-6);
+};
+
+template <typename T, uint N>
+T RBFs<T, N>::value(const Vec<T, N>& point)
+{
+    assert(N==1);
+    T result = 0;
+    for (uint rbfId=0; rbfId<numRBFs; rbfId++)
+    {
+        const Vec<T, N>& rbfCenter = kernelCenters[rbfId];
+        Vec<T, N> diff = point - rbfCenter;
+        T dist = absVal(diff[0]);
+        if (dist <= kernelFunction->influenceRegion())
+        {
+            result += coefficients[rbfId] * kernelFunction->value(diff);
+        }
+    }
+    return result;
+}
