@@ -24,13 +24,13 @@ int main()
     std::cout << "RenderWindow setup successful." << std::endl;
 
 
-    uint numCells = 500;
+    uint numCells = 200;
     double dt = 0.01;
     MeshGenerator meshGen(1, Vec<double, 2>{0.0, DOMAIN_X_MAX}, numCells, MeshType::CARTESIAN);
     Mesh<double, 1> mesh = meshGen.generateMesh();
     Solver<double, 1> solver(mesh.edges, mesh.cells, 0.1);
 
-    auto kernel = std::make_unique<WendlandFunction<double, 1>>(100 * DOMAIN_X_MAX/static_cast<double>(numCells));
+    auto kernel = std::make_unique<WendlandFunction<double, 1>>(3 * DOMAIN_X_MAX/static_cast<double>(numCells));
     RBFs<double, 1> rbfs(
         numCells,
         numCells,
@@ -83,7 +83,7 @@ int main()
 
             // std::cout<<EnergyLog.data()<<std::endl;
             ImPlot::SetupAxes("x", "u");
-
+            std::cout<<"RBF plot [0] = "<<plotYRBFs[0]<<", [1] = "<<plotYRBFs[1]<<", [2] = "<<plotYRBFs[2]<<std::endl;
             ImPlot::PlotLine("u", plotX.data(), plotY.data(), static_cast<int>(plotY.size()));
             ImPlot::PlotLine("u_RBFs", plotX.data(), plotYRBFs.data(), static_cast<int>(plotYRBFs.size()));
             ImPlot::EndPlot();

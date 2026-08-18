@@ -92,26 +92,33 @@ public:
     }
     T influenceRegion() const override
     {
-        return 1.0/invInfluenceRadius;
+        assert(absVal(invInfluenceRadius - 1.0/influenceRadius) < EPSILON1);
+        return influenceRadius;
     }
     T integrate(T lb, T ub) const override
     {
-        lb = lb * invInfluenceRadius;
-        ub = ub * invInfluenceRadius;
-        // ub = ub >1? static_cast<T>(1): ub;
-        assert(ub<=1);
+        assert(lb>=0 && ub>=0);
+        assert(ub<=influenceRadius);
         assert(lb <= ub);
-        assert(lb >= 0);
-        assert(lb <= 1);
-        // if (lb > 1) return 0;
-        const T y1 = (1-ub);
-        const T y0 = (1-lb);
-        const T y1pow5 = y1*y1*y1*y1*y1;
-        const T y0pow5 = y0*y0*y0*y0*y0;
-        const T res1 = 3*y1pow5*(-4*y1 + 5) + 2*y1pow5*y1;
-        const T res0 = 3*y0pow5*(-4*y0 + 5) + 2*y0pow5*y0;
-        const T res = (-influenceRadius/static_cast<T>(15))*(res1 - res0);
-        return res;
+        Vec<T, 1> p(0.5*(ub+lb));
+        return (ub - lb) * value(p);
+
+        // lb = lb * invInfluenceRadius;
+        // ub = ub * invInfluenceRadius;
+        // // ub = ub >1? static_cast<T>(1): ub;
+        // assert(ub<=1);
+        // assert(lb <= ub);
+        // assert(lb >= 0);
+        // assert(lb <= 1);
+        // // if (lb > 1) return 0;
+        // const T y1 = (1-ub);
+        // const T y0 = (1-lb);
+        // const T y1pow5 = y1*y1*y1*y1*y1;
+        // const T y0pow5 = y0*y0*y0*y0*y0;
+        // const T res1 = 3*y1pow5*(-4*y1 + 5) + 2*y1pow5*y1;
+        // const T res0 = 3*y0pow5*(-4*y0 + 5) + 2*y0pow5*y0;
+        // const T res = (-influenceRadius/static_cast<T>(15))*(res1 - res0);
+        // return res;
     }
 };
 

@@ -11,10 +11,15 @@ void RBFs<T, N>::computeConnectivityMatrix(const Mesh<T, N> &mesh)
         const Vec<T, N>& rbfCenter = kernelCenters[rbfId];
         for (uint cellId=0; cellId<mesh.numCells; cellId++)
         {
+
             T res = 0;
             const std::array<uint, static_cast<uint>(1) << N>& cellEdgeIndices = mesh.cells.edgeIndices[cellId];
             T ub = mesh.edges.vertices[cellEdgeIndices[1]][0][0] - rbfCenter[0];
             T lb = mesh.edges.vertices[cellEdgeIndices[0]][0][0] - rbfCenter[0];
+            if (cellId == 30)
+            {
+                std::cout << ub << " " << lb << std::endl;
+            }
             // T ub = ubVec[0];
             // T lb = lbVec[0];
             T ubAbs = absVal(ub);
@@ -44,8 +49,13 @@ void RBFs<T, N>::computeConnectivityMatrix(const Mesh<T, N> &mesh)
                 else
                 res = kernelFunction->integrate(lbAbs, ubAbs);
             }
-                ConnectivityMatrix(cellId, rbfId) = res;
+            if (cellId == 30) std::cout << res << std::endl;
+            ConnectivityMatrix(cellId, rbfId) = res/mesh.cells.cellVolumes[cellId];
         }
+    }
+    if (!MatrixSolver<T>::checkDiagonalDominance(ConnectivityMatrix))
+    {
+        std::cerr << "Warning: Connectivity matrix is not diagonally dominant. The RBF method may not converge." << std::endl;
     }
 }
 
@@ -56,7 +66,7 @@ void RBFs<T, N>::computeRBFCoefficients(const std::vector<T>& cellAveragesX)
     std::cout << "CellAveragesX.size() = " << cellAveragesX.size() << std::endl;
     std::cout << "numCells = " << numCells << std::endl;
     assert(cellAveragesX.size() == numCells);
-    MatrixSolver<T>::gaussSeidelSolver(ConnectivityMatrix, cellAveragesX, coefficients, 50, 1e-6);
+    MatrixSolver<T>::gaussSeidelSolver(ConnectivityMatrix, cellAveragesX, coefficients, 300, 1e-6);
 };
 
 template <typename T, uint N>

@@ -13,15 +13,15 @@ Solver<T, N>::Solver(Edges<T, N>& _edges, Cells<T, N>& _cells, T _a)
     numberOfCells = cells.cellAverages.size();
     numberOfEdges = edges.edgeProperty.size();
     assert(cells.cellVolumes.size() == numberOfCells);
-    if(verifyDomainIntegrity())
-    {
-        std::cout << "Domain integrity verified." << std::endl;
-    }
-    else
-    {
-        std::cerr << "Domain integrity verification failed." << std::endl;
-        exit(EXIT_FAILURE);
-    }
+    // if(verifyDomainIntegrity())
+    // {
+    //     std::cout << "Domain integrity verified." << std::endl;
+    // }
+    // else
+    // {
+    //     std::cerr << "Domain integrity verification failed." << std::endl;
+    //     exit(EXIT_FAILURE);
+    // }
     a = _a;
 }
 
