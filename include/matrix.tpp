@@ -82,6 +82,8 @@ void MatrixSolver<T>::gaussSeidelSolver(const Matrix<T> &A, const std::vector<T>
         if (norm < tolerance)
         {
             converged = true;
+            // std::cout<<"Gauss-Seidel method converged in "<<iter<<" iterations with tolerance "<<tolerance<<std::endl;
+            // std::cout<<"Norm: "<<norm<<std::endl;
             break;
         }
     }

@@ -30,7 +30,7 @@ int main()
     Mesh<double, 1> mesh = meshGen.generateMesh();
     Solver<double, 1> solver(mesh.edges, mesh.cells, 0.1);
 
-    auto kernel = std::make_unique<WendlandFunction<double, 1>>(3 * DOMAIN_X_MAX/static_cast<double>(numCells));
+    auto kernel = std::make_unique<WendlandFunction<double, 1>>(7 * DOMAIN_X_MAX/static_cast<double>(numCells));
     RBFs<double, 1> rbfs(
         numCells,
         numCells,
@@ -41,7 +41,8 @@ int main()
     rbfs.computeConnectivityMatrix(mesh);
     int solverPerRender = 30;
 
-
+    float toleranceRBFExponent = -6.0;
+    uint maxIterationsRBF = 1000;
     while(window.isOpen()){
         window.clear(sf::Color::Black);
          while (auto event = window.pollEvent()){
@@ -54,9 +55,23 @@ int main()
         ImGui::SFML::Update(window, clock.restart());
         ImGui::Begin("Linear advection");
         ImGui::SliderInt("Solver per render", &solverPerRender, 1, 1000);
+        ImGui::SliderFloat("Tolerance exponent", &toleranceRBFExponent, -12.0, -1.0);
+        ImGui::Text("Tolerance = %.5e", pow(10, toleranceRBFExponent));
+        ImGui::SliderInt("Max iterations", reinterpret_cast<int*>(&maxIterationsRBF), 1, 10000);
+        ImGui::Text("Iterations = %d", maxIterationsRBF);
+
+
         // ImPlot::SetNextAxesToFit();
 
         // rbfs.computeRBFCoefficients(mesh.cells.cellAverages);
+        for (uint iter= 0; iter< solverPerRender; iter++)
+        {
+            solver.step(dt);
+        }
+
+
+
+
         if (ImPlot::BeginPlot("Linear advection"))
         {
             std::vector<double> plotX;
@@ -74,23 +89,18 @@ int main()
             {
                 plotY.push_back(avg[0]);
             }
-            rbfs.computeRBFCoefficients(plotY);
             for (const auto& pos : mesh.cells.cellCentersPositions)
             {
                 plotYRBFs.push_back(rbfs.value(pos));
             }
             ImPlot::SetupAxesLimits(0.0, DOMAIN_X_MAX, 0.0, 1.5);
-
+            rbfs.computeRBFCoefficients(plotY, maxIterationsRBF, pow(10, toleranceRBFExponent));
             // std::cout<<EnergyLog.data()<<std::endl;
             ImPlot::SetupAxes("x", "u");
-            std::cout<<"RBF plot [0] = "<<plotYRBFs[0]<<", [1] = "<<plotYRBFs[1]<<", [2] = "<<plotYRBFs[2]<<std::endl;
+            // std::cout<<"RBF plot [0] = "<<plotYRBFs[0]<<", [1] = "<<plotYRBFs[1]<<", [2] = "<<plotYRBFs[2]<<std::endl;
             ImPlot::PlotLine("u", plotX.data(), plotY.data(), static_cast<int>(plotY.size()));
             ImPlot::PlotLine("u_RBFs", plotX.data(), plotYRBFs.data(), static_cast<int>(plotYRBFs.size()));
             ImPlot::EndPlot();
-        }
-        for (uint iter= 0; iter< solverPerRender; iter++)
-        {
-            solver.step(dt);
         }
         ImGui::End();
         ImGui::SFML::Render(window);

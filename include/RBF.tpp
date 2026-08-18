@@ -60,13 +60,13 @@ void RBFs<T, N>::computeConnectivityMatrix(const Mesh<T, N> &mesh)
 }
 
 template <typename T, uint N>
-void RBFs<T, N>::computeRBFCoefficients(const std::vector<T>& cellAveragesX)
+void RBFs<T, N>::computeRBFCoefficients(const std::vector<T>& cellAveragesX, const uint maxIterations, const T tolerance)
 {
     assert(N==1);
-    std::cout << "CellAveragesX.size() = " << cellAveragesX.size() << std::endl;
-    std::cout << "numCells = " << numCells << std::endl;
+    // std::cout << "CellAveragesX.size() = " << cellAveragesX.size() << std::endl;
+    // std::cout << "numCells = " << numCells << std::endl;
     assert(cellAveragesX.size() == numCells);
-    MatrixSolver<T>::gaussSeidelSolver(ConnectivityMatrix, cellAveragesX, coefficients, 300, 1e-6);
+    MatrixSolver<T>::gaussSeidelSolver(ConnectivityMatrix, cellAveragesX, coefficients, maxIterations, tolerance);
 };
 
 template <typename T, uint N>
