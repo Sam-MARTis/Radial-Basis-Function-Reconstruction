@@ -46,6 +46,7 @@ void MatrixSolver<T>::jacobiSolver(const Matrix<T> &A, const std::vector<T> &b, 
     }
     if (!converged)
     {
+
         std::cerr << "Jacobi method did not converge within the maximum number of iterations." << std::endl;
     }
 }

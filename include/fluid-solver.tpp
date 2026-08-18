@@ -142,7 +142,29 @@ void Solver<T, N>::calculateFluxes()
         edgeProperty.numericalFlux = (a * (edgeProperty.normalVelFlux[0] + edgeProperty.normalVelFlux[1])  - absVal(a)*(edgeProperty.normalVelFlux[1] - edgeProperty.normalVelFlux[0])) * 0.5;
 
     }
+}
 
+
+template <typename T, uint N>
+void Solver<T, N>::calculateRBFBasedFluxes(const RBFs<T, N>& rbfs, const T dt)
+{
+    const bool aRight = a > 0;
+    for (uint i=0; i<numberOfEdges; i++)
+    {
+        EdgeProperty<T, N>& edgeProperty = edges.edgeProperty[i];
+        const T edgePosition = edges.vertices[i][0][0];
+        const T lb = a>0? edgePosition - dt * a : edgePosition;
+        const T ub = a<0? edgePosition - dt * a : edgePosition;
+        // const T lb = edgePosition - dt*a*(static_cast<T>(aRight));
+        // const T ub = edgePosition - dt*a*(static_cast<T>(!aRight));
+        assert(lb<ub);
+        // std::cout<< "ub: " << ub << " lb: " << lb << std::endl;
+        // std::cout << "absVal(ub - lb)" << absVal(ub - lb) << std::endl;
+        assert(absVal(ub - lb) > EPSILON1);
+        const T rbfValue = rbfs.integrate(lb, ub);
+        edgeProperty.numericalFlux = rbfValue;
+        // std::cout <<edgeProperty.numericalFlux;
+    }
 }
 template <typename T, uint N>
 void Solver<T, N>::applyBoundaryConditions()
@@ -164,7 +186,7 @@ void Solver<T, N>::applyBoundaryConditions()
 }
 
 template <typename T, uint N>
-void Solver<T, N>::updateCellAverages(T dt){
+void Solver<T, N>::updateCellAverages(const T dt){
     for(uint i = 0; i < numberOfCells; i++)
     {
         std::array<uint, static_cast<uint>((1u)<<N)>& cellEdgeIndices = cells.edgeIndices[i];
@@ -181,5 +203,6 @@ void Solver<T, N>::updateCellAverages(T dt){
         cells.cellAverages[i][0] -= fluxLeaving * dt / cellVolume;
     }
 }
+
 
 

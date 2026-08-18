@@ -70,7 +70,7 @@ void RBFs<T, N>::computeRBFCoefficients(const std::vector<T>& cellAveragesX, con
 };
 
 template <typename T, uint N>
-T RBFs<T, N>::value(const Vec<T, N>& point)
+T RBFs<T, N>::value(const Vec<T, N>& point) const
 {
     assert(N==1);
     T result = 0;
@@ -87,7 +87,7 @@ T RBFs<T, N>::value(const Vec<T, N>& point)
     return result;
 }
 template <typename T, uint N>
-T RBFs<T, N>::integrate(T lb, T ub)
+T RBFs<T, N>::integrate(T lb, T ub) const
 {
     assert(N==1);
     T result = 0;
@@ -117,6 +117,7 @@ T RBFs<T, N>::integrate(T lb, T ub)
             }
             if (lbAbs >= influenceRadius)
             {
+                continue;
                 res = 0;
             }
             else if (ubAbs >= influenceRadius)

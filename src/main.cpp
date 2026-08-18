@@ -24,7 +24,7 @@ int main()
     std::cout << "RenderWindow setup successful." << std::endl;
 
 
-    uint numCells = 20;
+    uint numCells = 100;
     double dt = 0.01;
     MeshGenerator meshGen(1, Vec<double, 2>{0.0, DOMAIN_X_MAX}, numCells, MeshType::CARTESIAN);
     Mesh<double, 1> mesh = meshGen.generateMesh();
@@ -39,7 +39,7 @@ int main()
         );
 
     rbfs.computeConnectivityMatrix(mesh);
-    int solverPerRender = 30;
+    int solverPerRender = 2;
 
     float toleranceRBFExponent = -6.0;
     uint maxIterationsRBF = 1000;
@@ -66,7 +66,20 @@ int main()
         // rbfs.computeRBFCoefficients(mesh.cells.cellAverages);
         for (uint iter= 0; iter< solverPerRender; iter++)
         {
-            solver.step(dt);
+            std::vector<double> plotY;
+            // std::vector<double> plotYRBFs;
+            // plotX.reserve(mesh.cells.cellCentersPositions.size());
+            plotY.reserve(mesh.cells.cellAverages.size());
+            for (const auto& avg : mesh.cells.cellAverages)
+            {
+                plotY.push_back(avg[0]);
+            }
+            // rbfs.computeRBFCoefficients(plotY)
+            rbfs.computeRBFCoefficients(plotY, maxIterationsRBF, pow(10, toleranceRBFExponent));
+            solver.stepRBFBased(rbfs, dt);
+            // solver.step(dt);
+            // std::cout << "Stepping"<<std::endl;
+            // std::cout << "mesh average: "<< mesh.cells.cellAverages[10][0] <<std::endl;
         }
 
 
@@ -90,7 +103,6 @@ int main()
                 plotY.push_back(avg[0]);
             }
             ImPlot::SetupAxesLimits(0.0, DOMAIN_X_MAX, 0.0, 1.5);
-            rbfs.computeRBFCoefficients(plotY, maxIterationsRBF, pow(10, toleranceRBFExponent));
             for (const auto& pos : mesh.cells.cellCentersPositions)
             {
                 plotYRBFs.push_back(rbfs.value(pos));

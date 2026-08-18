@@ -1,6 +1,7 @@
 #pragma once
 #include "constants.hpp"
 #include <vector>
+#include <iostream>
 
 template <typename T>
 class Matrix
