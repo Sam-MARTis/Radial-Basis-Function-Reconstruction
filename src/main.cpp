@@ -24,7 +24,7 @@ int main()
     std::cout << "RenderWindow setup successful." << std::endl;
 
 
-    uint numCells = 200;
+    uint numCells = 20;
     double dt = 0.01;
     MeshGenerator meshGen(1, Vec<double, 2>{0.0, DOMAIN_X_MAX}, numCells, MeshType::CARTESIAN);
     Mesh<double, 1> mesh = meshGen.generateMesh();
@@ -89,12 +89,12 @@ int main()
             {
                 plotY.push_back(avg[0]);
             }
+            ImPlot::SetupAxesLimits(0.0, DOMAIN_X_MAX, 0.0, 1.5);
+            rbfs.computeRBFCoefficients(plotY, maxIterationsRBF, pow(10, toleranceRBFExponent));
             for (const auto& pos : mesh.cells.cellCentersPositions)
             {
                 plotYRBFs.push_back(rbfs.value(pos));
             }
-            ImPlot::SetupAxesLimits(0.0, DOMAIN_X_MAX, 0.0, 1.5);
-            rbfs.computeRBFCoefficients(plotY, maxIterationsRBF, pow(10, toleranceRBFExponent));
             // std::cout<<EnergyLog.data()<<std::endl;
             ImPlot::SetupAxes("x", "u");
             // std::cout<<"RBF plot [0] = "<<plotYRBFs[0]<<", [1] = "<<plotYRBFs[1]<<", [2] = "<<plotYRBFs[2]<<std::endl;

@@ -155,11 +155,12 @@ void Solver<T, N>::applyBoundaryConditions()
     // firstEdge.numericalFlux = averageFlux;
     // lastEdge.numericalFlux = averageFlux;
     // lastEdge.numericalFlux = firstEdge.numericalFlux;
-
+    // std::cout <<" Applying boundary conditions"<<std::endl;
     cells.cellAverages[numberOfCells-1][0] = cells.cellAverages[numberOfCells - 2][0]; 
     edges.edgeProperty[numberOfEdges-1].numericalFlux = edges.edgeProperty[numberOfEdges - 2].numericalFlux;
     cells.cellAverages[0][0] = cells.cellAverages[1][0];
-    edges.edgeProperty[0].numericalFlux = edges.edgeProperty[1].numericalFlux;
+    // There is a minus cause the branchless statement in cell update considers this as leaving
+    edges.edgeProperty[0].numericalFlux = -edges.edgeProperty[1].numericalFlux;
 }
 
 template <typename T, uint N>

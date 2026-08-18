@@ -86,3 +86,48 @@ T RBFs<T, N>::value(const Vec<T, N>& point)
     }
     return result;
 }
+template <typename T, uint N>
+T RBFs<T, N>::integrate(T lb, T ub)
+{
+    assert(N==1);
+    T result = 0;
+    for (uint rbfId=0; rbfId<numRBFs; rbfId++)
+    {
+        T res = 0;
+        const T rbfCenter = kernelCenters[rbfId][0];
+        const T influenceRadius = kernelFunction->influenceRegion();
+        T lbLocal = lb - rbfCenter;
+        T ubLocal = ub - rbfCenter;
+
+        T ubAbs = absVal(ubLocal);
+        T lbAbs = absVal(lbLocal);
+        if (lbLocal*ubLocal <0) // They have different signs
+        {
+            ubAbs = ubAbs > influenceRadius ? influenceRadius : ubAbs;
+            lbAbs = lbAbs > influenceRadius ? influenceRadius : lbAbs;
+            res = kernelFunction->integrate(0, ubAbs) + kernelFunction->integrate(0, lbAbs);
+
+        }
+        else
+        {
+            if (lbAbs > ubAbs)
+            {
+                std::swap(ub, lb);
+                std::swap(ubAbs, lbAbs);
+            }
+            if (lbAbs >= influenceRadius)
+            {
+                res = 0;
+            }
+            else if (ubAbs >= influenceRadius)
+            {
+                res = kernelFunction->integrate(lbAbs, influenceRadius);
+            }
+            else
+                res = kernelFunction->integrate(lbAbs, ubAbs);
+        }
+
+        result += coefficients[rbfId] * res;
+    }
+    return result;
+}

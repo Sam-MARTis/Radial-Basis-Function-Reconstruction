@@ -21,6 +21,7 @@ class RBFs{
     void computeConnectivityMatrix(const Mesh<T, N> &mesh);
     void computeRBFCoefficients(const std::vector<T>& cellAveragesX, const uint maxIterations, const T tolerance);
     T value(const Vec<T, N>& point);
+    T integrate(T lb, T ub);
 };
 
 #include "RBF.tpp"

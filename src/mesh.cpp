@@ -20,7 +20,7 @@ Mesh<double, 1> MeshGenerator::generateMesh()
 
     double cellSize = (domainBounds[1] - domainBounds[0]) / numberOfCells;
     // double targetPoint = (domainBounds[0] + domainBounds[1]) / 2.0;
-    double targetPoint = 0.1;
+    double targetPoint =  3*cellSize;
     for (uint i = 0; i < numberOfCells + 1; i++)
     {
         
@@ -28,7 +28,7 @@ Mesh<double, 1> MeshGenerator::generateMesh()
         // if (i < numberOfCells+1)
         // {
             EdgeProperty<double, 1> edge;
-            edge.connectingCells = {i==0 ? (numberOfCells-1) : i-1, i == numberOfCells ? 0 : i};
+            edge.connectingCells = {i==0 ? (0) : i-1, i == numberOfCells ? numberOfCells-1 : i};
             edge.normal = {1.0}; // Normal pointing from left to right
             edge.numericalFlux = 0.0; // Initialize numerical flux to zero
             mesh.edges.edgeProperty.push_back(edge);
