@@ -25,12 +25,13 @@ int main()
 
 
     uint numCells = 100;
-    double dt = 0.01;
+    double dt = 0.1;
+    int solverPerRender = 100;
     MeshGenerator meshGen(1, Vec<double, 2>{0.0, DOMAIN_X_MAX}, numCells, MeshType::CARTESIAN);
     Mesh<double, 1> mesh = meshGen.generateMesh();
     Solver<double, 1> solver(mesh.edges, mesh.cells, 0.1);
 
-    auto kernel = std::make_unique<WendlandFunction<double, 1>>(7 * DOMAIN_X_MAX/static_cast<double>(numCells));
+    auto kernel = std::make_unique<WendlandFunction<double, 1>>(10 * DOMAIN_X_MAX/static_cast<double>(numCells));
     RBFs<double, 1> rbfs(
         numCells,
         numCells,
@@ -39,9 +40,8 @@ int main()
         );
 
     rbfs.computeConnectivityMatrix(mesh);
-    int solverPerRender = 2;
 
-    float toleranceRBFExponent = -6.0;
+    float toleranceRBFExponent = -4.0;
     uint maxIterationsRBF = 1000;
     while(window.isOpen()){
         window.clear(sf::Color::Black);

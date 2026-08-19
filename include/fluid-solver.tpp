@@ -162,7 +162,7 @@ void Solver<T, N>::calculateRBFBasedFluxes(const RBFs<T, N>& rbfs, const T dt)
         // std::cout << "absVal(ub - lb)" << absVal(ub - lb) << std::endl;
         assert(absVal(ub - lb) > EPSILON1);
         const T rbfValue = rbfs.integrate(lb, ub);
-        edgeProperty.numericalFlux = rbfValue;
+        edgeProperty.numericalFlux = a*rbfValue;
         // std::cout <<edgeProperty.numericalFlux;
     }
 }
@@ -182,12 +182,12 @@ void Solver<T, N>::applyBoundaryConditions()
     edges.edgeProperty[numberOfEdges-1].numericalFlux = edges.edgeProperty[numberOfEdges - 2].numericalFlux;
     cells.cellAverages[0][0] = cells.cellAverages[1][0];
     // There is a minus cause the branchless statement in cell update considers this as leaving
-    edges.edgeProperty[0].numericalFlux = -edges.edgeProperty[1].numericalFlux;
+    edges.edgeProperty[0].numericalFlux = edges.edgeProperty[1].numericalFlux;
 }
 
 template <typename T, uint N>
 void Solver<T, N>::updateCellAverages(const T dt){
-    for(uint i = 0; i < numberOfCells; i++)
+    for(uint i = 2; i < numberOfCells; i++)
     {
         std::array<uint, static_cast<uint>((1u)<<N)>& cellEdgeIndices = cells.edgeIndices[i];
         // T& cellAverage = cells.cellAverages[i];
