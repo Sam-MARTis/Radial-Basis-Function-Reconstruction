@@ -70,6 +70,37 @@ void RBFs<T, N>::computeRBFCoefficients(const std::vector<T>& cellAveragesX, con
 };
 
 template <typename T, uint N>
+void RBFs<T, N>::computeCoefficientDerivatives(const uint maxIterations, const T tolerance)
+{
+    std::vector<T> b(numCells);
+    std::vector<T> x(numRBFs);
+    for (uint cellID=0; cellID<numRBFs; cellID++)
+    {
+        b[cellID] = static_cast<T>(1);
+        if (cellID>0) b[cellID-1] = static_cast<T>(0);
+        MatrixSolver<T>::gaussSeidelSolver(ConnectivityMatrix, b, x, maxIterations, tolerance);
+        std::copy(x.begin(), x.end(), coefficientsDerivatives.data.begin() + cellID*numRBFs);
+    }
+}
+
+template <typename T, uint N>
+void RBFs<T, N>::computeRBFCoefficientsViaDerivatives(const std::vector<T>& cellAveragesX)
+{
+    for (uint rbfID=0; rbfID<numRBFs; rbfID++)
+    {
+        T coeff = 0;
+        for (uint cellID=0; cellID<numCells; cellID++)
+        {
+            coeff += coefficientsDerivatives(cellID, rbfID) * cellAveragesX[cellID];
+        }
+        coefficients[rbfID] = coeff;
+    }
+}
+
+
+
+
+template <typename T, uint N>
 T RBFs<T, N>::value(const Vec<T, N>& point) const
 {
     assert(N==1);

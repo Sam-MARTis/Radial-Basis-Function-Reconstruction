@@ -40,9 +40,11 @@ int main()
         );
 
     rbfs.computeConnectivityMatrix(mesh);
-
+    std::cout << "Connectivity matrix computed." << std::endl;
     float toleranceRBFExponent = -4.0;
     uint maxIterationsRBF = 1000;
+    rbfs.computeCoefficientDerivatives(maxIterationsRBF*10, pow(10, toleranceRBFExponent-1));
+    std::cout << "Coefficient derivatives computed." << std::endl;
     while(window.isOpen()){
         window.clear(sf::Color::Black);
          while (auto event = window.pollEvent()){
@@ -75,7 +77,9 @@ int main()
                 plotY.push_back(avg[0]);
             }
             // rbfs.computeRBFCoefficients(plotY)
-            rbfs.computeRBFCoefficients(plotY, maxIterationsRBF, pow(10, toleranceRBFExponent));
+            // rbfs.computeRBFCoefficients(plotY, maxIterationsRBF, pow(10, toleranceRBFExponent));
+            rbfs.computeRBFCoefficientsViaDerivatives(plotY);
+            // std::cout << "RBF coefficients computed." << std::endl;
             solver.stepRBFBased(rbfs, dt);
             // solver.step(dt);
             // std::cout << "Stepping"<<std::endl;

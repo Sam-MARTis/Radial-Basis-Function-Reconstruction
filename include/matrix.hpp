@@ -8,8 +8,8 @@ class Matrix
 {
     uint rows;
     uint columns;
-    std::vector<T> data;
 public:
+    std::vector<T> data;
     Matrix(const uint _rows, const uint _columns): rows(_rows), columns(_columns), data(rows * columns) {}
     T& operator()(const uint row, const uint column)
     {
