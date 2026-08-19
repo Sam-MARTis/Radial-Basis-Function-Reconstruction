@@ -1,10 +1,12 @@
 #pragma once
 
+#include <omp.h>
 
 template <typename T, uint N>
 void RBFs<T, N>::computeConnectivityMatrix(const Mesh<T, N> &mesh)
 {
     assert(N==1); // Only implemented for 1D for now
+    #pragma omp parallel for
     for (uint rbfId=0; rbfId<numRBFs; rbfId++)
     {
 
@@ -16,12 +18,7 @@ void RBFs<T, N>::computeConnectivityMatrix(const Mesh<T, N> &mesh)
             const std::array<uint, static_cast<uint>(1) << N>& cellEdgeIndices = mesh.cells.edgeIndices[cellId];
             T ub = mesh.edges.vertices[cellEdgeIndices[1]][0][0] - rbfCenter[0];
             T lb = mesh.edges.vertices[cellEdgeIndices[0]][0][0] - rbfCenter[0];
-            if (cellId == 30)
-            {
-                std::cout << ub << " " << lb << std::endl;
-            }
-            // T ub = ubVec[0];
-            // T lb = lbVec[0];
+
             T ubAbs = absVal(ub);
             T lbAbs = absVal(lb);
             if (lb*ub <0) // They have different signs
@@ -49,7 +46,6 @@ void RBFs<T, N>::computeConnectivityMatrix(const Mesh<T, N> &mesh)
                 else
                 res = kernelFunction->integrate(lbAbs, ubAbs);
             }
-            if (cellId == 30) std::cout << res << std::endl;
             ConnectivityMatrix(cellId, rbfId) = res/mesh.cells.cellVolumes[cellId];
         }
     }
@@ -72,10 +68,11 @@ void RBFs<T, N>::computeRBFCoefficients(const std::vector<T>& cellAveragesX, con
 template <typename T, uint N>
 void RBFs<T, N>::computeCoefficientDerivatives(const uint maxIterations, const T tolerance)
 {
-    std::vector<T> b(numCells);
-    std::vector<T> x(numRBFs);
+    #pragma omp parallel for
     for (uint cellID=0; cellID<numRBFs; cellID++)
     {
+        std::vector<T> b(numCells);
+        std::vector<T> x(numRBFs);
         b[cellID] = static_cast<T>(1);
         if (cellID>0) b[cellID-1] = static_cast<T>(0);
         MatrixSolver<T>::gaussSeidelSolver(ConnectivityMatrix, b, x, maxIterations, tolerance);

@@ -1,4 +1,5 @@
 #include <iostream>
+#include <omp.h>
 #include <SFML/Graphics.hpp>
 #include <implot.h>
 
@@ -12,6 +13,10 @@
 
 int main()
 {
+    std::cout<<"Max threads available: "<<omp_get_max_threads()<<std::endl;
+    omp_set_num_threads(omp_get_max_threads()-1);
+
+
     sf::Clock clock;
     sf::ContextSettings contextSettings;
     contextSettings.antiAliasingLevel = 16;
@@ -43,29 +48,11 @@ int main()
     std::cout << "Connectivity matrix computed." << std::endl;
     float toleranceRBFExponent = -4.0;
     uint maxIterationsRBF = 1000;
-    rbfs.computeCoefficientDerivatives(maxIterationsRBF*10, pow(10, toleranceRBFExponent-1));
+    rbfs.computeCoefficientDerivatives(maxIterationsRBF*100, pow(10, toleranceRBFExponent-2));
     std::cout << "Coefficient derivatives computed." << std::endl;
-    while(window.isOpen()){
-        window.clear(sf::Color::Black);
-         while (auto event = window.pollEvent()){
-            ImGui::SFML::ProcessEvent(window, *event);
-            if (event->is<sf::Event::Closed>())
-            {
-                window.close();
-            }
-        }
-        ImGui::SFML::Update(window, clock.restart());
-        ImGui::Begin("Linear advection");
-        ImGui::SliderInt("Solver per render", &solverPerRender, 1, 1000);
-        ImGui::SliderFloat("Tolerance exponent", &toleranceRBFExponent, -12.0, -1.0);
-        ImGui::Text("Tolerance = %.5e", pow(10, toleranceRBFExponent));
-        ImGui::SliderInt("Max iterations", reinterpret_cast<int*>(&maxIterationsRBF), 1, 10000);
-        ImGui::Text("Iterations = %d", maxIterationsRBF);
 
-
-        // ImPlot::SetNextAxesToFit();
-
-        // rbfs.computeRBFCoefficients(mesh.cells.cellAverages);
+    auto doStep = [&]()
+    {
         for (uint iter= 0; iter< solverPerRender; iter++)
         {
             std::vector<double> plotY;
@@ -85,9 +72,37 @@ int main()
             // std::cout << "Stepping"<<std::endl;
             // std::cout << "mesh average: "<< mesh.cells.cellAverages[10][0] <<std::endl;
         }
+    };
+
+    while(window.isOpen()){
+        window.clear(sf::Color::Black);
+         while (auto event = window.pollEvent()){
+            ImGui::SFML::ProcessEvent(window, *event);
+            if (event->is<sf::Event::Closed>())
+            {
+                window.close();
+            }
+             if (event->is<sf::Event::MouseButtonPressed>())
+             {
+                 doStep();
+             }
+        }
+        ImGui::SFML::Update(window, clock.restart());
+        ImGui::Begin("Linear advection");
+        ImGui::SliderInt("Solver per render", &solverPerRender, 1, 1000);
+        ImGui::SliderFloat("Tolerance exponent", &toleranceRBFExponent, -12.0, -1.0);
+        ImGui::Text("Tolerance = %.5e", pow(10, toleranceRBFExponent));
+        ImGui::SliderInt("Max iterations", reinterpret_cast<int*>(&maxIterationsRBF), 1, 10000);
+        ImGui::Text("Iterations = %d", maxIterationsRBF);
+
+
+        // ImPlot::SetNextAxesToFit();
+
+        // rbfs.computeRBFCoefficients(mesh.cells.cellAverages);
 
 
 
+        // doStep();
 
         if (ImPlot::BeginPlot("Linear advection"))
         {
