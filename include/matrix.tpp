@@ -54,12 +54,13 @@ void MatrixSolver<T>::jacobiSolver(const Matrix<T> &A, const std::vector<T> &b, 
 template <typename T>
 void MatrixSolver<T>::gaussSeidelSolver(const Matrix<T> &A, const std::vector<T> &b, std::vector<T> &x, const uint maxIterations, const T tolerance)
 {
+    const T overrelaxationFactor = 1.8;
     uint n = A.numRows();
     assert(n == A.numColumns());
     bool converged = false;
     for (uint iter = 0; iter < maxIterations; ++iter)
     {
-        std::vector<T> x_old = x;
+        T norm = 0;
         for (uint i = 0; i < n; ++i)
         {
             T sum = 0;
@@ -70,21 +71,15 @@ void MatrixSolver<T>::gaussSeidelSolver(const Matrix<T> &A, const std::vector<T>
                     sum += A(i, j) * x[j];
                 }
             }
-            x[i] = (b[i] - sum) / A(i, i);
-        }
-        
-        T norm = 0;
-        for (uint i = 0; i < n; ++i)
-        {
-            norm += (x[i] - x_old[i]) * (x[i] - x_old[i]);
+            T x_new = (b[i] - sum) / A(i, i);
+            norm += (x_new - x[i]) * (x_new - x[i]);
+            x[i] += overrelaxationFactor * (x_new - x[i]);
         }
         norm = std::sqrt(norm);
 
         if (norm < tolerance)
         {
             converged = true;
-            // std::cout<<"Gauss-Seidel method converged in "<<iter<<" iterations with tolerance "<<tolerance<<std::endl;
-            // std::cout<<"Norm: "<<norm<<std::endl;
             break;
         }
     }

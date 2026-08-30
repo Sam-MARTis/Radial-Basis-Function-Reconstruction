@@ -20,7 +20,7 @@ Mesh<double, 1> MeshGenerator::generateMesh()
 
     double cellSize = (domainBounds[1] - domainBounds[0]) / numberOfCells;
     // double targetPoint = (domainBounds[0] + domainBounds[1]) / 2.0;
-    double targetPoint =  10*cellSize;
+    double targetPoint =  20*cellSize;
     for (uint i = 0; i < numberOfCells + 1; i++)
     {
         

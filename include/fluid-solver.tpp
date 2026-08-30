@@ -162,7 +162,7 @@ void Solver<T, N>::calculateRBFBasedFluxes(const RBFs<T, N>& rbfs, const T dt)
         // std::cout << "absVal(ub - lb)" << absVal(ub - lb) << std::endl;
         assert(absVal(ub - lb) > EPSILON1);
         const T rbfValue = rbfs.integrate(lb, ub);
-        edgeProperty.numericalFlux = a*rbfValue;
+        edgeProperty.numericalFlux = rbfValue;
         // std::cout <<edgeProperty.numericalFlux;
     }
 }
