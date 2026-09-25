@@ -21,6 +21,7 @@ struct Vec
     }
     Vec(std::initializer_list<T> values)
     {
+        // data.fill(T{});
         assert(N == values.size());
         std::copy(values.begin(), values.end(), data.begin());
     }
@@ -75,6 +76,10 @@ struct Vec
         result *= val;
         return result;
     }
+    friend Vec operator*(T scalar, const Vec& v) {
+        return v * scalar;
+    }
+
     Vec operator/(const T val) const
     {
         Vec result(*this);
@@ -90,8 +95,52 @@ struct Vec
         }
         return std::sqrt(sum);
     }
-
+    constexpr static T dot(const Vec& a, const Vec& b)
+    {
+        T sum = 0;
+        for (uint i = 0; i < N; i++)
+        {
+            sum += a.data[i] * b.data[i];
+        }
+        return sum;
+    }
+    constexpr static T dot(const Vec& a, const std::array<T, N>& b)
+    {
+        T sum = 0;
+        for (uint i = 0; i < N; i++)
+        {
+            sum += a.data[i] * b[i];
+        }
+        return sum;
+    }
 };
+
+namespace VecMath
+{
+    template <typename T, uint N, uint M>
+    Vec<T, N> matrixMultiply(const Vec<Vec<T, M>, N>& matrix, const Vec<T, M>& vector)
+    {
+        Vec<T, N> result;
+        for (uint i = 0; i < N; ++i)
+        {
+            result[i] = Vec<T, M>::dot(matrix[i], vector);
+        }
+        return result;
+    }
+
+    template <typename T, uint N>
+    Vec<T, N> componentwiseMultiply(const Vec<T, N>& a, const Vec<T, N>& b)
+    {
+        Vec<T, N> result;
+        for (uint i = 0; i < N; ++i)
+        {
+            result[i] = a[i] * b[i];
+        }
+        return result;
+    }
+}
+
+
 
 // inline double distanceSquared(const Vec2D& p1, const Vec2D& p2)
 // {
