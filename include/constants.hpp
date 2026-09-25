@@ -3,6 +3,7 @@
 
 
 using uint = unsigned int;
+using Index = uint;
 constexpr double EPSILON1 = 1e-8;
 constexpr double DEFAULT_SCREEN_WIDTH = 800;
 constexpr double DEFAULT_SCREEN_HEIGHT = 800;
