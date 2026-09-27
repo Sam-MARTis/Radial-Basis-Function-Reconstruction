@@ -284,6 +284,40 @@ void Solver<T, N>::reconstructSolutionAtEdges()
  */
 
 
+template <typename T, uint N>
+void Solver<T, N>::reconstructSolutionAtEdges(const RBFs<T, N>& rbfs)
+{
+    for (Index currentCellIdx = 0; currentCellIdx < numberOfCells; currentCellIdx++)
+    {
+        const Neighbourhood<T, N>& neighbourhood = mesh.cells.neighbourhoods[currentCellIdx];
+        const Vec<T, N+2>& Uj = mesh.cells.cellAverages[currentCellIdx];
+
+        const std::vector<Index>& cellEdgeIndices = mesh.cells.edgeIndices[currentCellIdx];
+        const Vec<T, N>& cellCenter = mesh.cells.cellCentersPositions[currentCellIdx];
+        const Vec<Vec<T, N>, N+2>& cellGradients = mesh.cells.reconstructedCellGradients[currentCellIdx];
+        for (Index edgeIdx : cellEdgeIndices)
+        {
+            EdgeProperty<T, N>& edgeProperty = mesh.edges.edgeProperty[edgeIdx];
+            const Vec<T, N>& edgeEvaluationPoint = mesh.edges.edgeEvaluationPoints[edgeIdx];
+            Vec<T, N+2> Ui(0);
+            for (Index fieldIdx = 0; fieldIdx < N+2; fieldIdx++)
+            {
+                Ui[fieldIdx] = rbfs.valueLocal(edgeEvaluationPoint, neighbourhood.neighbourCellIndices, neighbourhood.rbfCoefficients[fieldIdx]);
+            }
+            const Vec<T, N+2> dU = Ui - Uj;
+            const T epsilonSq = LIMITER_K * LIMITER_K * edgeProperty.measure * edgeProperty.measure;
+            const Vec<T, N+2> psi = Limiters<T, N+2>::Venkatakrishnan(Uj, Ui, neighbourhood.extremeValues.first, neighbourhood.extremeValues.second, epsilonSq);
+            const Vec<T, N+2> Ulimited = Uj + VecMath::componentwiseMultiply<T, N+2>(psi, dU);
+            if (edgeProperty.connectingCells.first == currentCellIdx) {
+                edgeProperty.reconstructedPushedU.first = Ulimited;
+            } else if (edgeProperty.connectingCells.second == currentCellIdx) {
+                edgeProperty.reconstructedPushedU.second = Ulimited;
+            } else {
+                assert(false && "edge does not belong to this cell");
+            }
+        }
+    }
+}
 
 
 
