@@ -19,8 +19,8 @@ class Solver
     [[deprecated]] void calculateRBFBasedFluxes(const RBFs<T, N>& rbfs, T dt);
     void updateCellAverages(T dt);
     void applyBoundaryConditions();
-    void reconstructSolutionAtEdges(const RBFs<T, N>& rbfs);
-
+    void reconstructSolutionAtEdgesViaRBFs(const RBFs<T, N>& rbfs);
+    void reconstructSolutionAtEdgesPiecewise();
     public:
     void updateNeighbourhoodRBFCoeffsAndExtremums();
     void prescribeBoundaryConditions(uint boundaryIndex, BOUNDARY_CONSTRAINT boundaryType, Vec<T, N+2> boundaryValue);
@@ -28,18 +28,45 @@ class Solver
     // void prescribeBoundaryConditions(uint boundaryIndex, BOUNDARY_CONSTRAINT boundaryType);
 
     Solver(Mesh<T, N>& mesh);
+    // void stepRBFBased(const RBFs<T, N>& rbfs, T dt)
+    // {
+    //     // T dt = 0.1;
+    //     calculateRBFBasedFluxes(rbfs, dt);
+    //     applyBoundaryConditions();
+    //     updateCellAverages(1.0);
+    // }
     void stepRBFBased(const RBFs<T, N>& rbfs, T dt)
     {
-        // T dt = 0.1;
-        calculateRBFBasedFluxes(rbfs, dt);
-        applyBoundaryConditions();
-        updateCellAverages(1.0);
+        {
+            updateNeighbourhoodRBFCoeffsAndExtremums();
+        }
+        {
+            reconstructSolutionAtEdgesViaRBFs(rbfs);
+        }
+        {
+            applyBoundaryConditions();
+        }
+        {
+            calculateFluxes();
+        }
+        {
+            updateCellAverages(dt);
+        }
     }
-    void step(T dt)
+    void stepPiecewise(T dt)
     {
-        calculateFluxes();
-        applyBoundaryConditions();
-        updateCellAverages(dt);
+        {
+            reconstructSolutionAtEdgesPiecewise();
+        }
+        {
+            applyBoundaryConditions();
+        }
+        {
+            calculateFluxes();
+        }
+        {
+            updateCellAverages(dt);
+        }
     }
 
 

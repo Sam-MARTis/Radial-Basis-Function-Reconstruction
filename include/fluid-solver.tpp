@@ -38,95 +38,95 @@ Solver<T, N>::Solver(Mesh<T, N>& mesh)
     boundaryConditions.resize(mesh.numBoundaries);
 }
 
-
-template <typename T, uint N>
-bool Solver<T,N>::verifyDomainIntegrity() const
-{
-    std::cout << "Verifying domain integrity..." << std::endl;
-    constexpr uint n1 = 1 << N;
-    constexpr uint n2 = 1 << (N - 1);
-    std::cout<< "Number of cells: " << numberOfCells << std::endl;
-    std::cout<< "Number of edges: " << numberOfEdges << std::endl;
-    std::cout<< "Number of edge indices "<< cells.edgeIndices.size() << std::endl;
-    for (uint i = 1; i < numberOfEdges-1; i++)
-    {
-        // std::vector<std::array<Vec<T, N>, static_cast<uint>(1) << (N - 1)>>
-        EdgeProperty<T, N>& edgeProperty = edges.edgeProperty[i];
-        std::array<Vec<T, N>, n2> vertices = edges.vertices[i];
-        
-        uint cell1Index = edgeProperty.connectingCells.first;
-        uint cell2Index = edgeProperty.connectingCells.second;
-        if (cell1Index >= cells.edgeIndices.size())
-        {
-            std::cerr << "Invalid cell1Index: " << cell1Index
-                    << ", number of cells: " << cells.edgeIndices.size()
-                    << '\n';
-            return false;
-        }
-
-        if (cell2Index >= cells.edgeIndices.size())
-        {
-            std::cerr << "Invalid cell2Index: " << cell2Index
-                    << ", number of cells: " << cells.edgeIndices.size()
-                    << '\n';
-            return false;
-        }
-        std::array<uint, n1>& cell1EdgeIndices = cells.edgeIndices[cell1Index];
-        Vec<T, N> cell1Center = cells.cellCentersPositions[cell1Index];
-        std::array<uint, n1>& cell2EdgeIndices = cells.edgeIndices[cell2Index];
-        Vec<T, N> cell2Center = cells.cellCentersPositions[cell2Index];
-        std::cout<<"Beginning checks for edge "<<i<<" connecting cells "<<cell1Index<<" and "<<cell2Index<<std::endl;
-        if (std::find(cell1EdgeIndices.begin(), cell1EdgeIndices.end(), i) == cell1EdgeIndices.end())
-        {
-            std::cerr << "Error: Edge " << i << " is not found in the edge indices of cell " << cell1Index << std::endl;
-            std::cerr << "Edge indices of cell " << cell1Index << ": ";
-            for (const auto& edgeIndex : cell1EdgeIndices)
-            {
-                std::cerr << edgeIndex << " ";
-            }
-            std::cerr << std::endl;
-            return false;
-        }
-        if (std::find(cell2EdgeIndices.begin(), cell2EdgeIndices.end(), i) == cell2EdgeIndices.end())
-        {
-            std::cerr << "Error: Edge " << i << " is not found in the edge indices of cell " << cell2Index << std::endl;
-            std::cerr << "Edge indices of cell " << cell2Index << ": ";
-            for (const auto& edgeIndex : cell2EdgeIndices)
-            {
-                std::cerr << edgeIndex << " ";
-            }
-            std::cerr << std::endl;
-            return false;
-        }
-        std::cout<<"Edge "<<i<<" is found in the edge indices of both cells."<<std::endl;
-        // Okay check one done. now for checking if the edge normal is pointing from cell1 to cell2.
-        for(uint vertexId = 0; vertexId < vertices.size(); vertexId++)
-        {
-            Vec<T, N> vertex = vertices[vertexId];
-            Vec<T, N> cell1ToVertex = vertex - cell1Center;
-            Vec<T, N> cell2ToVertex = vertex - cell2Center;
-            T dotProduct1 = 0;
-            T dotProduct2 = 0;
-            if(i== numberOfCells-1) continue;
-            for(uint dim = 0; dim < N; dim++)
-            {
-                dotProduct1 += edgeProperty.normal[dim] * cell1ToVertex[dim];
-                dotProduct2 += edgeProperty.normal[dim] * cell2ToVertex[dim];
-            }
-            if(dotProduct1 <= 0)
-            {
-                std::cerr << "Error: Edge " << i << " normal is pointing towards cell " << cell1Index << std::endl;
-                return false;
-            }
-            if(dotProduct2 >= 0)
-            {
-                std::cerr << "Error: Edge " << i << " normal is away from cell " << cell2Index << std::endl;
-                return false;
-            }
-        }
-    }
-    return true;
-}
+//
+// template <typename T, uint N>
+// bool Solver<T,N>::verifyDomainIntegrity() const
+// {
+//     std::cout << "Verifying domain integrity..." << std::endl;
+//     constexpr uint n1 = 1 << N;
+//     constexpr uint n2 = 1 << (N - 1);
+//     std::cout<< "Number of cells: " << numberOfCells << std::endl;
+//     std::cout<< "Number of edges: " << numberOfEdges << std::endl;
+//     std::cout<< "Number of edge indices "<< cells.edgeIndices.size() << std::endl;
+//     for (uint i = 1; i < numberOfEdges-1; i++)
+//     {
+//         // std::vector<std::array<Vec<T, N>, static_cast<uint>(1) << (N - 1)>>
+//         EdgeProperty<T, N>& edgeProperty = edges.edgeProperty[i];
+//         std::array<Vec<T, N>, n2> vertices = edges.vertices[i];
+//
+//         uint cell1Index = edgeProperty.connectingCells.first;
+//         uint cell2Index = edgeProperty.connectingCells.second;
+//         if (cell1Index >= cells.edgeIndices.size())
+//         {
+//             std::cerr << "Invalid cell1Index: " << cell1Index
+//                     << ", number of cells: " << cells.edgeIndices.size()
+//                     << '\n';
+//             return false;
+//         }
+//
+//         if (cell2Index >= cells.edgeIndices.size())
+//         {
+//             std::cerr << "Invalid cell2Index: " << cell2Index
+//                     << ", number of cells: " << cells.edgeIndices.size()
+//                     << '\n';
+//             return false;
+//         }
+//         std::array<uint, n1>& cell1EdgeIndices = cells.edgeIndices[cell1Index];
+//         Vec<T, N> cell1Center = cells.cellCentersPositions[cell1Index];
+//         std::array<uint, n1>& cell2EdgeIndices = cells.edgeIndices[cell2Index];
+//         Vec<T, N> cell2Center = cells.cellCentersPositions[cell2Index];
+//         std::cout<<"Beginning checks for edge "<<i<<" connecting cells "<<cell1Index<<" and "<<cell2Index<<std::endl;
+//         if (std::find(cell1EdgeIndices.begin(), cell1EdgeIndices.end(), i) == cell1EdgeIndices.end())
+//         {
+//             std::cerr << "Error: Edge " << i << " is not found in the edge indices of cell " << cell1Index << std::endl;
+//             std::cerr << "Edge indices of cell " << cell1Index << ": ";
+//             for (const auto& edgeIndex : cell1EdgeIndices)
+//             {
+//                 std::cerr << edgeIndex << " ";
+//             }
+//             std::cerr << std::endl;
+//             return false;
+//         }
+//         if (std::find(cell2EdgeIndices.begin(), cell2EdgeIndices.end(), i) == cell2EdgeIndices.end())
+//         {
+//             std::cerr << "Error: Edge " << i << " is not found in the edge indices of cell " << cell2Index << std::endl;
+//             std::cerr << "Edge indices of cell " << cell2Index << ": ";
+//             for (const auto& edgeIndex : cell2EdgeIndices)
+//             {
+//                 std::cerr << edgeIndex << " ";
+//             }
+//             std::cerr << std::endl;
+//             return false;
+//         }
+//         std::cout<<"Edge "<<i<<" is found in the edge indices of both cells."<<std::endl;
+//         // Okay check one done. now for checking if the edge normal is pointing from cell1 to cell2.
+//         for(uint vertexId = 0; vertexId < vertices.size(); vertexId++)
+//         {
+//             Vec<T, N> vertex = vertices[vertexId];
+//             Vec<T, N> cell1ToVertex = vertex - cell1Center;
+//             Vec<T, N> cell2ToVertex = vertex - cell2Center;
+//             T dotProduct1 = 0;
+//             T dotProduct2 = 0;
+//             if(i== numberOfCells-1) continue;
+//             for(uint dim = 0; dim < N; dim++)
+//             {
+//                 dotProduct1 += edgeProperty.normal[dim] * cell1ToVertex[dim];
+//                 dotProduct2 += edgeProperty.normal[dim] * cell2ToVertex[dim];
+//             }
+//             if(dotProduct1 <= 0)
+//             {
+//                 std::cerr << "Error: Edge " << i << " normal is pointing towards cell " << cell1Index << std::endl;
+//                 return false;
+//             }
+//             if(dotProduct2 >= 0)
+//             {
+//                 std::cerr << "Error: Edge " << i << " normal is away from cell " << cell2Index << std::endl;
+//                 return false;
+//             }
+//         }
+//     }
+//     return true;
+// }
 
 
 
@@ -250,6 +250,7 @@ void Solver<T, N>::updateCellAverages(T dt){
 template <typename T, uint N>
 void Solver<T, N>::updateNeighbourhoodRBFCoeffsAndExtremums()
 {
+#pragma omp parallel for
     for (Index cellId = 0; cellId<mesh.numCells; cellId++)
     {
         const Neighbourhood<T, N>& neighbourhood = mesh.cells.neighbourhoods[cellId];
@@ -348,7 +349,7 @@ void Solver<T, N>::prescribeBoundaryConditions(uint boundaryIndex, BOUNDARY_CONS
 
 
 template <typename T, uint N>
-void Solver<T, N>::reconstructSolutionAtEdges(const RBFs<T, N>& rbfs)
+void Solver<T, N>::reconstructSolutionAtEdgesViaRBFs(const RBFs<T, N>& rbfs)
 {
     for (Index currentCellIdx = 0; currentCellIdx < numberOfCells; currentCellIdx++)
     {
@@ -382,5 +383,23 @@ void Solver<T, N>::reconstructSolutionAtEdges(const RBFs<T, N>& rbfs)
     }
 }
 
-
-
+template <typename T, uint N>
+void Solver<T, N>::reconstructSolutionAtEdgesPiecewise()
+{
+    for (Index currentCellIdx = 0; currentCellIdx < numberOfCells; currentCellIdx++)
+    {
+        const Vec<T, N+2>& Uj = mesh.cells.cellAverages[currentCellIdx];
+        const std::vector<Index>& cellEdgeIndices = mesh.cells.edgeIndices[currentCellIdx];
+        for (Index edgeIdx : cellEdgeIndices)
+        {
+            EdgeProperty<T, N>& edgeProperty = mesh.edges.edgeProperty[edgeIdx];
+            if (edgeProperty.connectingCells.first == currentCellIdx) {
+                edgeProperty.reconstructedPushedU.first = Uj;
+            } else if (edgeProperty.connectingCells.second == currentCellIdx) {
+                edgeProperty.reconstructedPushedU.second = Uj;
+            } else {
+                assert(false && "edge does not belong to this cell");
+            }
+        }
+    }
+}
