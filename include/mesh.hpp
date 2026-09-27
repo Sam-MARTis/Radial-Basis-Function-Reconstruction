@@ -21,12 +21,14 @@ struct Mesh{
     uint numCells = 0;
     uint numEdges = 0;
     MeshType meshType = MeshType::CARTESIAN;
+    uint numBoundaries = 1;
     Edges<T, N> edges;
     std::pair<Vec<T, N>, Vec<T, N>> boundingBox;
-    // std::vector<Index> boundaryEdgesIndices;
-    // std::vector<Index> boundaryCellsIndices;
-    // std::vector<Index> domainEdgesIndices;
+    std::vector<Index> boundaryEdgesIndices;
+    std::vector<Index> boundaryCellsIndices;
+    std::vector<Index> domainEdgesIndices;
     Cells<T, N> cells;
+    std::vector<std::pair<uint, std::vector<Index>>> boundaryIdentifiers;
     void fixEdgesConnectivityOrder();
     void identifyBoundaryEdgesAndCells(const std::vector<std::pair<uint, std::unique_ptr<Domain<T, N>>>>& boundaryDomains);
     static void initializeNeighbourhood(Mesh<T, N>& mesh, uint depth);
@@ -154,6 +156,58 @@ void Mesh<T, N>::fixEdgesConnectivityOrder()
     }
 }
 
+
+
+
+template<typename T, uint N>
+void Mesh<T, N>::identifyBoundaryEdgesAndCells(const  std::vector<std::pair<uint, std::unique_ptr<Domain<T, N>>>>& boundaryDomains)
+{
+    const uint numSuppliedBoundaryDomains = boundaryDomains.size();
+    numBoundaries = numSuppliedBoundaryDomains;
+    std::unordered_map<uint, uint> boundaryIdToIndexMapping;
+    for (Index i=0; i<numSuppliedBoundaryDomains; i++)
+    {
+
+        const auto& [boundaryId, boundaryDomain] = boundaryDomains[i];
+        boundaryIdentifiers.push_back({boundaryId, {}});
+        boundaryIdToIndexMapping.insert({boundaryId, i});
+    }
+    // const Index numEdges = this->numEdges;
+    for (Index edgeIdx = 0; edgeIdx < numEdges; edgeIdx++)
+    {
+        const EdgeProperty<T, N>& edgeProperty = edges.edgeProperty[edgeIdx];
+        const Index sourceCellIndex = edgeProperty.connectingCells.first;
+        const Index sinkCellIndex = edgeProperty.connectingCells.second;
+        if (sourceCellIndex >= numCells || sinkCellIndex >= numCells)
+        {
+            if (sourceCellIndex>=numCells)
+            {
+                boundaryCellsIndices.push_back(sinkCellIndex);
+            }
+            else
+            {
+                boundaryCellsIndices.push_back(sourceCellIndex);
+            }
+            boundaryEdgesIndices.push_back(edgeIdx);
+            for (Index boundaryCheckIdx = 0; boundaryCheckIdx < numSuppliedBoundaryDomains; boundaryCheckIdx++)
+            {
+                const auto& [boundaryIdTag, boundaryDomain] = boundaryDomains[boundaryCheckIdx];
+                const Vec<T, N>& edgeVertex1 = edges.vertices[edgeIdx][0];
+                const Vec<T, N>& edgeVertex2 = edges.vertices[edgeIdx][1];
+                if (boundaryDomain->isInside(edgeVertex1) && boundaryDomain->isInside(edgeVertex2))
+                {
+                    uint boundaryIdx = boundaryIdToIndexMapping.at(boundaryIdTag);
+                    boundaryIdentifiers[boundaryIdx].second.push_back(edgeIdx);
+                    break;
+                }
+            }
+        }else
+        {
+            domainEdgesIndices.push_back(edgeIdx);
+        }
+    }
+
+}
 
 
 
