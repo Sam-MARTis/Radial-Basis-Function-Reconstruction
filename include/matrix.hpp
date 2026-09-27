@@ -28,6 +28,21 @@ class MatrixSolver
 {
 
 public:
+    static std::vector<T> matrixStdVectorMultiply(const Matrix<T>& mat, const std::vector<T>& vec)
+    {
+        assert(mat.numColumns() == vec.size());
+        std::vector<T> result(mat.numRows(), 0);
+        for (uint i = 0; i < mat.numRows(); ++i)
+        {
+            for (uint j = 0; j < mat.numColumns(); ++j)
+            {
+                result[i] += mat(i, j) * vec[j];
+            }
+        }
+        return result;
+    }
+
+
     static Matrix<double> inverse(const Matrix<double>& A)
     {
         assert(A.numRows() == A.numColumns());
