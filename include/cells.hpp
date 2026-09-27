@@ -12,12 +12,12 @@ struct EdgeProperty
     // std::array<T, static_cast<uint>(pow(2, N-1))> vertices;
 
     std::array<T, N> normal;
-    // std::array<T, 2> normalVelFlux; // If normal . direction > 0, use element 1, else 0.
-    T numericalFlux;
+    Vec<T, N+2> numericalFlux;
     std::pair<Vec<T, N+2>, Vec<T, N+2>> reconstructedPushedU; // If normal . direction > 0, use element 1, else 0.
-    std::pair<uint, uint> connectingCells;
+    std::pair<Index, Index> connectingCells;
     T measure = 0;
 };
+
 
 template <typename T, uint N>
 struct Edges
@@ -31,7 +31,10 @@ template <typename T, uint N>
 struct Cells
 {
     std::vector<std::vector<Index>> edgeIndices;
-    std::vector<T> cellAverages;
+    std::vector<Vec<T, N+2>> cellAverages;
+    // std::vector<Vec<Vec<T, N>, N+2>> reconstructedCellGradients;
+    // std::vector<Neighbourhood<T, N>> neighbourhoods;
     std::vector<T> cellVolumes;
     std::vector<Vec<T, N>> cellCentersPositions;
 };
+

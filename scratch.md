@@ -44,3 +44,8 @@ And the loop:
 - Loop through all edges. 
   - Compute the numerical flux value for each edge using the pushed value.
   - Update cell averages. 
+
+
+Let us skip the linear advection and move directly to the Euler equation in 1D. 
+
+Roe flux should be sufficient

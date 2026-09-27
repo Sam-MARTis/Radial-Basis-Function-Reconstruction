@@ -2,7 +2,7 @@
 #include "constants.hpp"
 #include <vector>
 #include <iostream>
-
+#include <Eigen/Dense>
 template <typename T>
 class Matrix
 {
@@ -26,7 +26,32 @@ public:
 template <typename T>
 class MatrixSolver
 {
+
 public:
+    static Matrix<double> inverse(const Matrix<double>& A)
+    {
+        assert(A.numRows() == A.numColumns());
+
+        const uint n = A.numRows();
+
+        Eigen::Map<const EigenMatrix> eigenA(
+            A.data.data(),
+            n,
+            n
+        );
+
+        EigenMatrix eigenInv = eigenA.inverse();
+
+        Matrix<double> result(n, n);
+
+        std::copy(
+            eigenInv.data(),
+            eigenInv.data() + n * n,
+            result.data.begin()
+        );
+
+        return result;
+    }
     static void jacobiSolver(const Matrix<T> &A, const std::vector<T> &b, std::vector<T> &x, uint maxIterations, T tolerance)
     {
         uint n = A.numRows();
@@ -134,4 +159,4 @@ public:
 };
 
 
-#include "matrix.tpp"
+// #include "matrix.tpp"

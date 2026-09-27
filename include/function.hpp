@@ -114,3 +114,14 @@ public:
     }
 };
 
+
+namespace functionMath
+{
+    template <typename T, uint N>
+    [[deprecated]] T integrateOverTriangle(const Function<T, N>& func, const std::array<Vec<T, N>, 3>& triangleVertices, const uint numGaussOrder)
+    {
+        std::cerr<< "Warning: integrateOverTriangle is deprecated and not implemented." << std::endl;
+        return T{};
+    }
+}
+

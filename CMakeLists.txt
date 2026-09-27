@@ -25,6 +25,8 @@ file(GLOB IMPLOT_SOURCES ${IMPLOT_DIR}/*.cpp)
 find_package(SFML 3 COMPONENTS Graphics REQUIRED)
 find_package(OpenGL REQUIRED)
 find_package(OpenMP REQUIRED)
+find_package(Eigen3 REQUIRED)
+
 
 #target_link_libraries(your_target PRIVATE )
 # ── Executable ────────────────────────────────────────────────────────────────
@@ -74,6 +76,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
         SFML::Window
         SFML::System
         OpenGL::GL
+        Eigen3::Eigen
 )
 
 # ── Optional: OpenGL (imgui-sfml may need it) ─────────────────────────────────
