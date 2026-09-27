@@ -32,3 +32,5 @@ template <typename T>
 constexpr T absVal(T value) {
     return (value < 0) ? -value : value;
 }
+
+constexpr double CV = 1.0;

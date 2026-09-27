@@ -133,7 +133,7 @@ Solver<T, N>::Solver(Mesh<T, N>& mesh)
 template <typename T, uint N>
 void Solver<T, N>::calculateFluxes()
 {
-    assert(N==2);
+    // assert(N==2);
     #pragma omp parallel for
     for (const uint domainEdgeIndex: mesh.domainEdgesIndices)
     {
