@@ -1,6 +1,7 @@
 #pragma once
 #include <algorithm>
 #include <iostream>
+#pragma <omp.h>
 // #include <SFML/Window/Keyboard.hpp>
 
 // #include "fluid-solver.hpp"
@@ -212,25 +213,39 @@ void Solver<T, N>::applyBoundaryConditions()
 }
 
 template <typename T, uint N>
-void Solver<T, N>::updateCellAverages(const T dt){
-    for(uint i = 2; i < numberOfCells; i++)
+void Solver<T, N>::updateCellAverages(T dt){
+#pragma omp parallel for
+    for(Index cellIdx = 0; cellIdx < numberOfCells; cellIdx++)
     {
-        std::array<uint, static_cast<uint>((1u)<<N)>& cellEdgeIndices = cells.edgeIndices[i];
-        // T& cellAverage = cells.cellAverages[i];
-        const T cellVolume = cells.cellVolumes[i];
+        std::vector<Index>& cellEdgeIndices = mesh.cells.edgeIndices[cellIdx];
+        // T& cellAverage = mesh.cells.cellAverages[i];
+        const T invCellVolume = 1.0/mesh.cells.cellVolumes[cellIdx];
 
-        T fluxLeaving = 0;
-        for (uint j = 0; j < cellEdgeIndices.size(); j++)
+        Vec<T, N+2> fluxLeaving(0);
+        // std::cout<<"Edge 0 measure: "<<mesh.edges.edgeProperty[cellEdgeIndices[0]].measure<<std::endl;
+        for (unsigned int edgeIndex : cellEdgeIndices)
         {
-            uint edgeIndex = cellEdgeIndices[j];
-            EdgeProperty<T, N>& edgeProperty = edges.edgeProperty[edgeIndex];
-            fluxLeaving += edgeProperty.numericalFlux * (static_cast<T>((edgeProperty.connectingCells.first == i))*2 - static_cast<T>(1)); // Branchless version of the above if-else statement. If fluxExiting is true, multiply by 1, else multiply by -1.
+            EdgeProperty<T, N>& edgeProperty = mesh.edges.edgeProperty[edgeIndex];
+            // std::cout<<"Measure of edge is: "<<edgeProperty.measure<<std::endl;
+            fluxLeaving += edgeProperty.numericalFlux * edgeProperty.measure * (static_cast<T>((edgeProperty.connectingCells.first == cellIdx)) * 2 - static_cast<T>(1)); // Branchless version of the above if-else statement. If fluxExiting is true, multiply by 1, else multiply by -1.
         }
-        cells.cellAverages[i][0] -= fluxLeaving * dt / cellVolume;
+        const T rhoBeforeUpdate = mesh.cells.cellAverages[cellIdx][0];
+        assert(rhoBeforeUpdate > 0);
+        // assert(fluxLeaving)
+
+        mesh.cells.cellAverages[cellIdx] -= fluxLeaving * dt*invCellVolume;
+        if (!(mesh.cells.cellAverages[cellIdx][0]>0))
+        {
+            const auto U = mesh.cells.cellAverages[cellIdx];
+            std::cout<<"ERROR: Rho: "<< U[0] <<", E: "<< U[N-1] <<std::endl;
+        }
+        assert(mesh.cells.cellAverages[cellIdx][0] > 0);
+        for (uint fieldIdx = 0; fieldIdx<N+2; fieldIdx++)
+        {
+            assert(!std::isnan(mesh.cells.cellAverages[cellIdx][fieldIdx]));
+        }
     }
 }
-
-
 
 template <typename T, uint N>
 void Solver<T, N>::updateNeighbourhoodRBFCoeffsAndExtremums()
