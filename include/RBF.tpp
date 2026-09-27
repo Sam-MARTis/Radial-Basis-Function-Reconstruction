@@ -249,7 +249,6 @@ void RBFs<T, N>::updateMeshRBFCoefficients(const Mesh<T, N>& mesh)
             }
             neighbourhood.rbfCoefficients[fieldVarIdx] = MatrixSolver<T>::matrixStdVectorMultiply(neighbourhood.ALocalInv, coeffs);
         }
-        
         // mesh.cells.neighbourhoods[cellId].rbfCoefficients = rbfCoefficients;
         // mesh.cells.neighbourhoods[cellId].rbfCoefficients = rbfCoefficients;
     }
