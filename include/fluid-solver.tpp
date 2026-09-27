@@ -203,6 +203,50 @@ void Solver<T, N>::updateCellAverages(const T dt){
         cells.cellAverages[i][0] -= fluxLeaving * dt / cellVolume;
     }
 }
+
+
+
+template <typename T, uint N>
+void Solver<T, N>::updateNeighbourhoodRBFCoeffsAndExtremums()
+{
+    for (Index cellId = 0; cellId<mesh.numCells; cellId++)
+    {
+        const Neighbourhood<T, N>& neighbourhood = mesh.cells.neighbourhoods[cellId];
+        const std::vector<Index>& neighbourCellIndices = neighbourhood.neighbourCellIndices;
+        const uint numNeighbours = neighbourhood.numNeighbours;
+        std::vector<Vec<T, N+1>> localNeighbourAverages(numNeighbours);
+        Vec<T, N+2>& minU = neighbourhood.extremeValues.first;
+        Vec<T, N+2>& maxU = neighbourhood.extremeValues.second;
+        for (uint fieldIdx = 0; fieldIdx < N+2; fieldIdx++) {
+            minU[fieldIdx] = std::numeric_limits<T>::max();
+            maxU[fieldIdx] = std::numeric_limits<T>::lowest();
+        }
+        for (uint neighbourCellLocalIdx=0; neighbourCellLocalIdx<numNeighbours; neighbourCellLocalIdx++)
+        {
+            const Index neighbourCellGlobalIdx = neighbourCellIndices[neighbourCellLocalIdx];
+            const Vec<T,N+2>& UNeighbour = mesh.cells.cellAverages[neighbourCellGlobalIdx];
+            localNeighbourAverages[neighbourCellLocalIdx] = mesh.cells.cellAverages[neighbourCellGlobalIdx];
+            for (uint fieldIdx=0; fieldIdx<N+2; fieldIdx++)
+            {
+                if (UNeighbour[fieldIdx] < minU[fieldIdx]) minU[fieldIdx] = UNeighbour[fieldIdx];
+                if (UNeighbour[fieldIdx] > maxU[fieldIdx]) maxU[fieldIdx] = UNeighbour[fieldIdx];
+            }
+        }
+
+        // std::array<std::vector<T>, N+2> rbfCoefficients;
+        for (uint fieldVarIdx=0; fieldVarIdx<N+2; fieldVarIdx++)
+        {
+            std::vector<T> coeffs(numNeighbours);
+            for (uint neighbourCellLocalIdx=0; neighbourCellLocalIdx<numNeighbours; neighbourCellLocalIdx++)
+            {
+                coeffs[neighbourCellLocalIdx] = localNeighbourAverages[neighbourCellLocalIdx][fieldVarIdx];
+            }
+            neighbourhood.rbfCoefficients[fieldVarIdx] = MatrixSolver<T>::matrixStdVectorMultiply(neighbourhood.ALocalInv, coeffs);
+        }
+        // mesh.cells.neighbourhoods[cellId].rbfCoefficients = rbfCoefficients;
+        // mesh.cells.neighbourhoods[cellId].rbfCoefficients = rbfCoefficients;
+    }
+}
 /*
 
 template <typename T, uint N>
@@ -237,8 +281,9 @@ void Solver<T, N>::reconstructSolutionAtEdges()
         }
     }
 }
-
-
  */
+
+
+
 
 

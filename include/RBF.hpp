@@ -10,6 +10,7 @@
 
 template<typename T, uint N>
 class RBFs{
+
     const uint numRBFs;
     const uint numCells;
     std::unique_ptr<Function<T, N>> kernelFunction;
@@ -22,7 +23,19 @@ class RBFs{
     numRBFs(_numFunctions), numCells(_numCells),
     kernelCenters(_kernelCenters), ConnectivityMatrix(_numCells, _numFunctions),
     coefficientsDerivatives(_numCells, _numFunctions), kernelFunction(std::move(_function)),
-    coefficients(numRBFs) {}
+    coefficients(numRBFs)
+    {
+        /*
+         *IMPORTANT
+         *The number of rbs must be the same as the number of cells.
+         *The indices must align with corresponding cells
+         *The kth rbf corresponds to the kth cell!
+         *Here even the rbf centers and cell centers align but that need not be the case.
+         *In the future we can move kernel centers for some upwind like interpolation
+         *BUT THE INDICES WILL STILL ALIGN. DONT FORGET THIS.
+         */
+        assert(_numCells == _numFunctions);
+    }
     [[deprecated]] void computeConnectivityMatrix(const Mesh<T, N> &mesh);
     void computeLocalCellConnectivityMatrix(const Mesh<T, N> &mesh);
     void computeCoefficientDerivatives(uint maxIterations, T tolerance);

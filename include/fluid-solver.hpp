@@ -7,8 +7,7 @@
 template <typename T, uint N>
 class Solver
 {
-    Edges<T, N>& edges;
-    Cells<T, N>& cells;
+    Mesh<T, N>& mesh;
 
     uint dimension;
     uint numberOfCells;
@@ -19,9 +18,10 @@ class Solver
     [[deprecated]] void calculateRBFBasedFluxes(const RBFs<T, N>& rbfs, T dt);
     void updateCellAverages(T dt);
     void applyBoundaryConditions();
-    void reconstructSolutionAtEdges();
+    void reconstructSolutionAtEdges(const RBFs<T, N>& rbfs);
 
     public:
+    void updateNeighbourhoodRBFCoeffsAndExtremums();
     // void prescribeBoundaryConditions(uint boundaryIndex, BOUNDARY_CONSTRAINT boundaryType, Vec<T, N+2> boundaryValue);
     void prescribeBoundaryConditions(uint boundaryIndex, BOUNDARY_CONSTRAINT boundaryType);
     // void prescribeBoundaryConditions(uint boundaryIndex, BOUNDARY_CONSTRAINT boundaryType);
