@@ -14,9 +14,9 @@ class Solver
     uint numberOfEdges;
     std::vector<std::pair<BOUNDARY_CONSTRAINT, Vec<T, N+2>>> boundaryConditions;
     T a;
-    [[nodiscard]] [[deprecated]] bool verifyDomainIntegrity() const;
+    // [[nodiscard]] [[deprecated]] bool verifyDomainIntegrity() const;
     void calculateFluxes();
-    [[deprecated]] void calculateRBFBasedFluxes(const RBFs<T, N>& rbfs, T dt);
+    // [[deprecated]] void calculateRBFBasedFluxes(const RBFs<T, N>& rbfs, T dt);
     void updateCellAverages(T dt);
     void applyBoundaryConditions();
     void reconstructSolutionAtEdgesViaRBFs(const RBFs<T, N>& rbfs);
