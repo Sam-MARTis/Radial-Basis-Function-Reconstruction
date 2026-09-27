@@ -49,3 +49,7 @@ And the loop:
 Let us skip the linear advection and move directly to the Euler equation in 1D. 
 
 Roe flux should be sufficient
+
+
+So for what class does what. 
+The rbf computation should probably be handled by the mesh itself. It has all the necesary information and the solver can just query the rbf coefficients. 

@@ -28,6 +28,7 @@ struct Mesh{
     Cells<T, N> cells;
     void fixEdgesConnectivityOrder();
     void identifyBoundaryEdgesAndCells(const std::vector<std::pair<uint, std::unique_ptr<Domain<T, N>>>>& boundaryDomains);
+    static void initializeNeighbourhood(Mesh<T, N>& mesh, uint depth);
 };
 
 class MeshGenerator{

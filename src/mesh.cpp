@@ -28,22 +28,25 @@ Mesh<double, 1> MeshGenerator::generateMesh()
         // if (i < numberOfCells+1)
         // {
             EdgeProperty<double, 1> edge;
-            edge.connectingCells = {i==0 ? (0) : i-1, i == numberOfCells ? numberOfCells-1 : i};
+            edge.connectingCells = {i==0 ? numberOfCells : i-1, i};
             edge.normal = {1.0}; // Normal pointing from left to right
-            edge.numericalFlux = 0.0; // Initialize numerical flux to zero
+            edge.numericalFlux = Vec<double, 1+2>(0); // Initialize numerical flux to zero
             mesh.edges.edgeProperty.push_back(edge);
             mesh.edges.vertices.push_back({Vec<double, 1>{domainBounds[0] + (i) * cellSize}});
+            edge.reconstructedPushedU = {Vec<double, 1+2>(0), Vec<double, 1+2>(0)};
+
         // }
 
         if(i==numberOfCells) continue; // Skip the last cell, as it doesn't have a right edge.
         Vec<double, 1> cellCenter{domainBounds[0] + (i + 0.5) * cellSize};
         mesh.cells.cellCentersPositions.push_back(cellCenter);
         mesh.cells.cellVolumes.push_back(cellSize);
-        mesh.cells.cellAverages.push_back({static_cast<double>(cellCenter[0]< targetPoint)});
+        mesh.cells.cellAverages.emplace_back(0);
         mesh.cells.edgeIndices.push_back({i, i+1}); 
     }
 
 
     mesh.numEdges = mesh.edges.edgeProperty.size();
+    Mesh<double, 1>::initializeNeighbourhood(mesh, 1);
     return mesh;
 }
