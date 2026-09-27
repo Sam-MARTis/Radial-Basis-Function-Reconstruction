@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <set>
 
 #include "constants.hpp"
 #include "vec.hpp"
@@ -41,4 +42,47 @@ class MeshGenerator{
     Mesh<double, 1> generateMesh();
 };
 
+
+template <typename T, uint N>
+void Mesh<T, N>::initializeNeighbourhood(Mesh<T, N>& mesh, uint depth)
+{
+    assert(mesh.cells.neighbourhoods.size() == 0);
+    for (Index cellId = 0; cellId < mesh.numCells; cellId++)
+    {
+        Neighbourhood<T, N> neighbourhood;
+        neighbourhood.numNeighbours = 0;
+        neighbourhood.neighbourCellIndices.clear();
+        neighbourhood.rbfCoefficients.clear();
+        neighbourhood.ALocalInv = Matrix<T>(depth, depth);
+        std::set<Index> neighbourhoodSets = {cellId};
+        for (uint currentDepth = 0; currentDepth < depth; currentDepth++)
+        {
+            std::vector<Index> thisDepthNeighbours;
+            for (const Index& neighbourId : neighbourhoodSets)
+            {
+                std::vector<Index> cellConnectingEdges = mesh.cells.edgeIndices[neighbourId];
+                for (const Index& edgeId : cellConnectingEdges)
+                {
+                    EdgeProperty<T, N>& edgeProperty = mesh.edges.edgeProperty[edgeId];
+                    Index neighbourCellId = (edgeProperty.connectingCells.first == neighbourId) ? edgeProperty.connectingCells.second : edgeProperty.connectingCells.first;
+                    if (neighbourCellId < mesh.numCells)
+                    {
+                        thisDepthNeighbours.push_back(neighbourCellId);
+                        // thisDepthNeighbours.insert(neighbourCellId);
+                    }
+                }
+            }
+            for (const Index& neighbourId : thisDepthNeighbours)
+            {
+                neighbourhoodSets.insert(neighbourId);
+            }
+        }
+        // neighbourhoodSets.erase(cellId);
+        for (const Index& neighbourId : neighbourhoodSets)
+        {
+            neighbourhood.neighbourCellIndices.push_back(neighbourId);
+        }
+        neighbourhood.numNeighbours = neighbourhood.neighbourCellIndices.size();
+    }
+}
 

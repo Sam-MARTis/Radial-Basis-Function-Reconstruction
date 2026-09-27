@@ -53,3 +53,7 @@ Roe flux should be sufficient
 
 So for what class does what. 
 The rbf computation should probably be handled by the mesh itself. It has all the necesary information and the solver can just query the rbf coefficients. 
+
+
+The neighbourhood struct should include the current index as well in the indices of neighbourhood. 
+This will be better for uniformity since it has to store the rbf coefficient for the current cell as well. 
