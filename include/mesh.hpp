@@ -89,5 +89,71 @@ void Mesh<T, N>::initializeNeighbourhood(Mesh<T, N>& mesh, uint depth)
 }
 
 
+template<typename T, uint N>
+void Mesh<T, N>::fixEdgesConnectivityOrder()
+{
+    // std::cout << "fixEdgesConnectivityOrder not implemented yet." << std::endl;
+
+    for (Index edgeIdx = 0; edgeIdx < numEdges; edgeIdx++)
+    {
+        EdgeProperty<T, N>& edgeProperty = edges.edgeProperty[edgeIdx];
+        const Index sourceCellIndex = edgeProperty.connectingCells.first;
+        const Index sinkCellIndex = edgeProperty.connectingCells.second;
+        std::array<T, N>& edgeNormal = edgeProperty.normal;
+        if (sourceCellIndex >= numCells || sinkCellIndex >= numCells)
+        {
+            assert(((sourceCellIndex>= numCells) && (sinkCellIndex >= numCells))==0);
+            Vec<T, N> edgeCenter(0);
+            for (uint i=0; i<(1<<(N-1)); i++)
+            {
+                edgeCenter += edges.vertices[edgeIdx][i];
+            }
+            // auto edgeVertex1 = edges.vertices[edgeIdx][0];
+            edgeProperty.measure = (edges.vertices[edgeIdx][1] - edges.vertices[edgeIdx][0]).norm();
+            // std::cout<<"Edge "<<edgeIdx<<" measure: "<<edgeProperty.measure<<std::endl;
+            edgeCenter *= static_cast<T>(1.0/(1<<(N-1)));
+            if (sourceCellIndex>= numCells)
+            {
+                const Vec<T, N>& sinkCellCenter = cells.cellCentersPositions[sinkCellIndex];
+                const Vec<T, N> directionVec = sinkCellCenter - edgeCenter;
+                T dotVal = Vec<T, N>::dot(directionVec, edgeNormal);
+                if (dotVal < 0) edgeProperty.connectingCells = {sinkCellIndex, sourceCellIndex};
+            }
+            if (sinkCellIndex >= numCells)
+            {
+                const Vec<T, N>& sourceCellCenter = cells.cellCentersPositions[sourceCellIndex];
+                const Vec<T, N> directionVec = edgeCenter - sourceCellCenter;
+                T dotVal = Vec<T, N>::dot(directionVec, edgeNormal);
+                if (dotVal < 0) edgeProperty.connectingCells = {sinkCellIndex, sourceCellIndex};
+
+            }
+
+            /*
+             * This branch implies the edge is a booundary edge with only one connecting cell.
+             * In the future we might wanna do some aligning but for now that is not necessary.
+             * Fluxes for boundary and stuff will be handled separately in the constraints
+             *
+             * Note from future Sep8 2026, the above was implemented and normals were aligned
+             * source sink relation with normal is followed for boundary edges as well
+             */
+            continue;
+        }
+        const Vec<T, N>& sourceCellCenter = cells.cellCentersPositions[sourceCellIndex];
+        const Vec<T, N>& sinkCellCenter = cells.cellCentersPositions[sinkCellIndex];
+        const Vec<T, N> directionVec = sinkCellCenter - sourceCellCenter;
+        T dotVal = Vec<T, N>::dot(directionVec, edgeNormal);
+        // for (Index i = 0; i < N; i++) dotVal += directionVec[i] * edgeNormal[i];
+        if (dotVal < 0)
+        {
+            edgeProperty.connectingCells = {sinkCellIndex, sourceCellIndex};
+            // for (uint edgeNormalIdx = 0; edgeNormalIdx < N; edgeNormalIdx++)
+            // {
+            //     edgeNormal[edgeNormalIdx] *= -1.0;
+            // }
+        }
+    }
+}
+
+
 
 
