@@ -165,46 +165,50 @@ void Solver<T, N>::calculateFluxes()
 }
 
 
-template <typename T, uint N>
-void Solver<T, N>::calculateRBFBasedFluxes(const RBFs<T, N>& rbfs, const T dt)
-{
-    const bool aRight = a > 0;
-    for (uint i=0; i<numberOfEdges; i++)
-    {
-        EdgeProperty<T, N>& edgeProperty = edges.edgeProperty[i];
-        const T edgePosition = edges.vertices[i][0][0];
-        const T lb = a>0? edgePosition - dt * a : edgePosition;
-        const T ub = a<0? edgePosition - dt * a : edgePosition;
-        // const T lb = edgePosition - dt*a*(static_cast<T>(aRight));
-        // const T ub = edgePosition - dt*a*(static_cast<T>(!aRight));
-        assert(lb<ub);
-        // std::cout<< "ub: " << ub << " lb: " << lb << std::endl;
-        // std::cout << "absVal(ub - lb)" << absVal(ub - lb) << std::endl;
-        assert(absVal(ub - lb) > EPSILON1);
-        const T rbfValue = rbfs.integrate(lb, ub);
-        edgeProperty.numericalFlux = rbfValue;
-        // std::cout <<edgeProperty.numericalFlux;
-    }
-}
+// template <typename T, uint N>
+// void Solver<T, N>::calculateRBFBasedFluxes(const RBFs<T, N>& rbfs, const T dt)
+// {
+//     const bool aRight = a > 0;
+//     for (uint i=0; i<numberOfEdges; i++)
+//     {
+//         EdgeProperty<T, N>& edgeProperty = edges.edgeProperty[i];
+//         const T edgePosition = edges.vertices[i][0][0];
+//         const T lb = a>0? edgePosition - dt * a : edgePosition;
+//         const T ub = a<0? edgePosition - dt * a : edgePosition;
+//         // const T lb = edgePosition - dt*a*(static_cast<T>(aRight));
+//         // const T ub = edgePosition - dt*a*(static_cast<T>(!aRight));
+//         assert(lb<ub);
+//         // std::cout<< "ub: " << ub << " lb: " << lb << std::endl;
+//         // std::cout << "absVal(ub - lb)" << absVal(ub - lb) << std::endl;
+//         assert(absVal(ub - lb) > EPSILON1);
+//         const T rbfValue = rbfs.integrate(lb, ub);
+//         edgeProperty.numericalFlux = rbfValue;
+//         // std::cout <<edgeProperty.numericalFlux;
+//     }
+// }
 
 
 template <typename T, uint N>
 void Solver<T, N>::applyBoundaryConditions()
 {
-    // Apply periodic boundary conditions for now
-    // lastEdge.normalVel
-    // EdgeProperty<T, N>& firstEdge = edges.edgeProperty[0];
-    // EdgeProperty<T, N>& lastEdge = edges.edgeProperty[numberOfEdges - 1];
-    // T averageFlux = (firstEdge.numericalFlux + lastEdge.numericalFlux) * 0.5;
-    // firstEdge.numericalFlux = averageFlux;
-    // lastEdge.numericalFlux = averageFlux;
-    // lastEdge.numericalFlux = firstEdge.numericalFlux;
-    // std::cout <<" Applying boundary conditions"<<std::endl;
-    cells.cellAverages[numberOfCells-1][0] = cells.cellAverages[numberOfCells - 2][0]; 
-    edges.edgeProperty[numberOfEdges-1].numericalFlux = edges.edgeProperty[numberOfEdges - 2].numericalFlux;
-    cells.cellAverages[0][0] = cells.cellAverages[1][0];
-    // There is a minus cause the branchless statement in cell update considers this as leaving
-    edges.edgeProperty[0].numericalFlux = edges.edgeProperty[1].numericalFlux;
+    for (uint boundaryIdx=0; boundaryIdx<mesh.numBoundaries; boundaryIdx++)
+    {
+        switch (boundaryConditions[boundaryIdx].first)
+        {
+            case BOUNDARY_CONSTRAINT::DIRICHLET:
+                Constraint<T, N>::DirichletConditionAtEdges(mesh, mesh.boundaryIdentifiers[boundaryIdx].second, boundaryConditions[boundaryIdx].second);
+                break;
+            case BOUNDARY_CONSTRAINT::EXTRAPOLATED:
+                Constraint<T, N>::ExtrapolatedFluxAtEdges(mesh, mesh.boundaryIdentifiers[boundaryIdx].second);
+                break;
+            case BOUNDARY_CONSTRAINT::SOLID_WALL:
+                Constraint<T, N>::SolidWallConditionAtEdges(mesh, mesh.boundaryIdentifiers[boundaryIdx].second);
+                break;
+            default:
+                std::cerr << "Error: Unsupported boundary condition type." << std::endl;
+                exit(EXIT_FAILURE);
+        }
+    }
 }
 
 template <typename T, uint N>
