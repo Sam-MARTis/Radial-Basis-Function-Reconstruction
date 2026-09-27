@@ -51,7 +51,7 @@ void Mesh<T, N>::initializeNeighbourhood(Mesh<T, N>& mesh, uint depth)
     {
         Neighbourhood<T, N> neighbourhood;
         neighbourhood.numNeighbours = 0;
-        neighbourhood.neighbourCellIndices.clear();
+        // neighbourhood.neighbourCellIndices.clear();
         neighbourhood.rbfCoefficients.clear();
         neighbourhood.ALocalInv = Matrix<T>(depth, depth);
         std::set<Index> neighbourhoodSets = {cellId};
@@ -83,6 +83,11 @@ void Mesh<T, N>::initializeNeighbourhood(Mesh<T, N>& mesh, uint depth)
             neighbourhood.neighbourCellIndices.push_back(neighbourId);
         }
         neighbourhood.numNeighbours = neighbourhood.neighbourCellIndices.size();
+        neighbourhood.rbfCoefficients = std::array<std::vector<T>, N+2>();
+        mesh.cells.neighbourhoods.push_back(neighbourhood);
     }
 }
+
+
+
 

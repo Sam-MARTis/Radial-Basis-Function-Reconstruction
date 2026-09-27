@@ -23,10 +23,13 @@ class RBFs{
     kernelCenters(_kernelCenters), ConnectivityMatrix(_numCells, _numFunctions),
     coefficientsDerivatives(_numCells, _numFunctions), kernelFunction(std::move(_function)),
     coefficients(numRBFs) {}
-    void computeConnectivityMatrix(const Mesh<T, N> &mesh);
+    [[deprecated]] void computeConnectivityMatrix(const Mesh<T, N> &mesh);
+    void computeLocalCellConnectivityMatrix(const Mesh<T, N> &mesh);
     void computeCoefficientDerivatives(uint maxIterations, T tolerance);
-    void computeRBFCoefficients(const std::vector<T>& cellAveragesX, uint maxIterations, T tolerance);
-    void computeRBFCoefficientsViaDerivatives(const std::vector<T>& cellAveragesX);
+    [[deprecated]] void computeRBFCoefficients(const std::vector<T>& cellAveragesX, uint maxIterations, T tolerance);
+    [[deprecated]]void computeRBFCoefficientsViaDerivatives(const std::vector<T>& cellAveragesX);
+
+    void updateMeshRBFCoefficients(const Mesh<T, N> &mesh);
     T value(const Vec<T, N>& point) const;
     T integrate(T lb, T ub) const;
 };

@@ -38,7 +38,7 @@ struct Neighbourhood
      */
     Index numNeighbours = 0;
     std::vector<Index> neighbourCellIndices;
-    std::vector<T> rbfCoefficients;
+    std::array<std::vector<T>, N+2> rbfCoefficients;
     Matrix<T> ALocalInv;
 };
 

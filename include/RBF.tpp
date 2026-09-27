@@ -160,3 +160,97 @@ T RBFs<T, N>::integrate(T lb, T ub) const
     }
     return result;
 }
+
+template <typename T, uint N>
+void RBFs<T, N>::computeLocalCellConnectivityMatrix(const Mesh<T, N>& mesh)
+{
+    assert(N==1); // Only implemented for 1D for now. For 2D -> Gauss integration of triangles
+    #pragma omp parallel for
+    for (uint topCellID=0; topCellID<numCells; topCellID++)
+    {
+        Neighbourhood<T, N>& neighbourhood = mesh.cells.neighbourhoods[topCellID];
+        const std::vector<Index>& neighbourCellIndices = neighbourhood.neighbourCellIndices;
+        const uint numNeighbours = neighbourhood.numNeighbours;
+
+        // The local structural matrix is square: row i is the equation obtained by
+        // integrating over neighbour cell i, column j is the RBF centred at neighbour cell j.
+        // The neighbourhood includes cellID itself, so the cell that owns this matrix is one
+        // of the neighbours and its own basis function is part of the local interpolation.
+        Matrix<T> ALocal(numNeighbours, numNeighbours);
+
+        for (uint j=0; j<numNeighbours; j++)
+        {
+            const Index rbfId = neighbourCellIndices[j];
+            const Vec<T, N>& rbfCenter = kernelCenters[rbfId];
+            for (uint i=0; i<numNeighbours; i++)
+            {
+                const Index cellId = neighbourCellIndices[i];
+                T res = 0;
+                const std::array<uint, static_cast<uint>(1) << N>& cellEdgeIndices = mesh.cells.edgeIndices[cellId];
+                T ub = mesh.edges.vertices[cellEdgeIndices[1]][0][0] - rbfCenter[0];
+                T lb = mesh.edges.vertices[cellEdgeIndices[0]][0][0] - rbfCenter[0];
+
+                T ubAbs = absVal(ub);
+                T lbAbs = absVal(lb);
+                if (lb*ub <0) // They have different signs
+                {
+                    ubAbs = ubAbs > kernelFunction->influenceRegion() ? kernelFunction->influenceRegion() : ubAbs;
+                    lbAbs = lbAbs > kernelFunction->influenceRegion() ? kernelFunction->influenceRegion() : lbAbs;
+                    res = kernelFunction->integrate(0, ubAbs) + kernelFunction->integrate(0, lbAbs);
+
+                }
+                else
+                {
+                    if (lbAbs > ubAbs)
+                    {
+                        std::swap(ub, lb);
+                        std::swap(ubAbs, lbAbs);
+                    }
+                    if (lbAbs >= kernelFunction->influenceRegion())
+                    {
+                        res = 0;
+                    }
+                    else if (ubAbs >= kernelFunction->influenceRegion())
+                    {
+                        res = kernelFunction->integrate(lbAbs, kernelFunction->influenceRegion());
+                    }
+                    else
+                        res = kernelFunction->integrate(lbAbs, ubAbs);
+                }
+                ALocal(i, j) = res/mesh.cells.cellVolumes[cellId];
+            }
+        }
+
+        neighbourhood.ALocalInv = MatrixSolver<T>::inverse(ALocal);
+    }
+}
+
+template <typename T, uint N>
+void RBFs<T, N>::updateMeshRBFCoefficients(const Mesh<T, N>& mesh)
+{
+    for (Index cellId = 0; cellId<mesh.numCells; cellId++)
+    {
+        const Neighbourhood<T, N>& neighbourhood = mesh.cells.neighbourhoods[cellId];
+        const std::vector<Index>& neighbourCellIndices = neighbourhood.neighbourCellIndices;
+        const uint numNeighbours = neighbourhood.numNeighbours;
+        std::vector<Vec<T, N+1>> cellAverages(numNeighbours);
+        for (uint neighbourCellIdx=0; neighbourCellIdx<numNeighbours; neighbourCellIdx++)
+        {
+            const Index neighbourCellId = neighbourCellIndices[neighbourCellIdx];
+            cellAverages[neighbourCellIdx] = mesh.cells.cellAverages[neighbourCellId][0];
+        }
+        // std::array<std::vector<T>, N+2> rbfCoefficients;
+        for (uint fieldVarIdx=0; fieldVarIdx<N+2; fieldVarIdx++)
+        {
+            std::vector<T> coeffs(numNeighbours);
+            for (uint neighbourCellIdx=0; neighbourCellIdx<numNeighbours; neighbourCellIdx++)
+            {
+                coeffs[neighbourCellIdx] = cellAverages[neighbourCellIdx][fieldVarIdx];
+            }
+            neighbourhood.rbfCoefficients[fieldVarIdx] = MatrixSolver<T>::matrixStdVectorMultiply(neighbourhood.ALocalInv, coeffs);
+        }
+        
+        // mesh.cells.neighbourhoods[cellId].rbfCoefficients = rbfCoefficients;
+        // mesh.cells.neighbourhoods[cellId].rbfCoefficients = rbfCoefficients;
+    }
+}
