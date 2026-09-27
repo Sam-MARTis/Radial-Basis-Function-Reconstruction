@@ -5,24 +5,36 @@
 
 // #include "fluid-solver.hpp"
 
+// template <typename T, uint N>
+// Solver<T, N>::Solver(Edges<T, N>& _edges, Cells<T, N>& _cells, T _a)
+//     : edges(_edges), cells(_cells)
+// {
+//     dimension = N;
+//     numberOfCells = cells.cellAverages.size();
+//     numberOfEdges = edges.edgeProperty.size();
+//     assert(cells.cellVolumes.size() == numberOfCells);
+//     // if(verifyDomainIntegrity())
+//     // {
+//     //     std::cout << "Domain integrity verified." << std::endl;
+//     // }
+//     // else
+//     // {
+//     //     std::cerr << "Domain integrity verification failed." << std::endl;
+//     //     exit(EXIT_FAILURE);
+//     // }
+//     a = _a;
+// }
+
 template <typename T, uint N>
-Solver<T, N>::Solver(Edges<T, N>& _edges, Cells<T, N>& _cells, T _a)
-    : edges(_edges), cells(_cells)
+Solver<T, N>::Solver(Mesh<T, N>& mesh)
+    : mesh(mesh)
 {
+    std::cout << "Initializing Solver..." << std::endl;
     dimension = N;
-    numberOfCells = cells.cellAverages.size();
-    numberOfEdges = edges.edgeProperty.size();
-    assert(cells.cellVolumes.size() == numberOfCells);
-    // if(verifyDomainIntegrity())
-    // {
-    //     std::cout << "Domain integrity verified." << std::endl;
-    // }
-    // else
-    // {
-    //     std::cerr << "Domain integrity verification failed." << std::endl;
-    //     exit(EXIT_FAILURE);
-    // }
-    a = _a;
+    numberOfCells = mesh.cells.cellAverages.size();
+    numberOfEdges = mesh.edges.edgeProperty.size();
+    assert(mesh.cells.cellVolumes.size() == numberOfCells);
+    boundaryConditions.resize(mesh.numBoundaries);
 }
 
 
@@ -116,32 +128,40 @@ bool Solver<T,N>::verifyDomainIntegrity() const
 }
 
 
+
 template <typename T, uint N>
 void Solver<T, N>::calculateFluxes()
 {
-    for (uint i = 0; i < numberOfEdges; i++)
+    assert(N==2);
+    #pragma omp parallel for
+    for (const uint domainEdgeIndex: mesh.domainEdgesIndices)
     {
-        EdgeProperty<T, N>& edgeProperty = edges.edgeProperty[i];
-        Vec<T, N>& cell1Average = cells.cellAverages[edgeProperty.connectingCells.first];
-        Vec<T, N>& cell2Average = cells.cellAverages[edgeProperty.connectingCells.second];
-
-        T velFlux1 = 0;
-        T velFlux2 = 0;
-
-        // Calculate fluxes based on the edge normal and cell averages
-
-        for (uint j = 0; j < N; j++)
+        EdgeProperty<T, N>& edgeProperty = mesh.edges.edgeProperty[domainEdgeIndex];        // if (edgeProperty.connectingCells.second >= mesh.numCells)
+        const Vec<T, N+2> UL = edgeProperty.reconstructedPushedU.first;
+        const Vec<T, N+2> UR = edgeProperty.reconstructedPushedU.second;
+        const std::array<T, N>& edgeNormal = edgeProperty.normal;
+        std::array<std::array<T, N>, N> directionVectors;
+        directionVectors[0] = edgeNormal;
+        if (N==2)
         {
-            velFlux1 += edgeProperty.normal[j] * cell1Average[j];
-            velFlux2 += edgeProperty.normal[j] * cell2Average[j]; // First order for now
+            directionVectors[1] = {-edgeNormal[1], edgeNormal[0]};
         }
-
-        edgeProperty.normalVelFlux[0] = velFlux1;
-        edgeProperty.normalVelFlux[1] = velFlux2;
-        // edgeProperty.numericalFlux = (velFlux1 * (a + absVal(a)))* 0.5 + (velFlux2 * (a - absVal(a)))* 0.5; // Rusanov flux for now
-        edgeProperty.numericalFlux = (a * (edgeProperty.normalVelFlux[0] + edgeProperty.normalVelFlux[1])  - absVal(a)*(edgeProperty.normalVelFlux[1] - edgeProperty.normalVelFlux[0])) * 0.5;
-
+        else
+        {
+            std::cerr << "Error: Unsupported dimension N=" << N << " for flux computation." << std::endl;
+            exit(EXIT_FAILURE);
+        }
+        {
+            // Profiler profiler("calculateFluxes::RoeFlux");
+            edgeProperty.numericalFlux = RoeFlux<T, N>::computeNumericalFlux(UL, UR, directionVectors);
+        }
+            // edgeProperty.numericalFlux = RussanovFlux<T, N>::computeNumericalFlux(cellLAverage, cellRAverage, directionVectors);
+        /*
+         * Put the task of computing out vs in on the cell update function.
+         * Remember, normal points from connectingCells.first to connectingCells.second.
+         */
     }
+
 }
 
 

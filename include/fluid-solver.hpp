@@ -27,7 +27,7 @@ class Solver
     void prescribeBoundaryConditions(uint boundaryIndex, BOUNDARY_CONSTRAINT boundaryType);
     // void prescribeBoundaryConditions(uint boundaryIndex, BOUNDARY_CONSTRAINT boundaryType);
 
-    Solver(Edges<T, N>& _edges, Cells<T, N>& _cells, T _a);
+    Solver(Mesh<T, N>& mesh);
     void stepRBFBased(const RBFs<T, N>& rbfs, T dt)
     {
         // T dt = 0.1;
