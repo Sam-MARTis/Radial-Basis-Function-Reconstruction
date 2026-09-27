@@ -31,6 +31,7 @@ class RBFs{
 
     void updateMeshRBFCoefficients(const Mesh<T, N> &mesh);
     T value(const Vec<T, N>& point) const;
+    T valueLocal(const Vec<T, N>& point, const std::vector<Index>& activeRBFIndices, const std::vector<T>& coefficients) const;
     T integrate(T lb, T ub) const;
 };
 

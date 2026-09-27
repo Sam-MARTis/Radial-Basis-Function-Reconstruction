@@ -106,7 +106,26 @@ T RBFs<T, N>::value(const Vec<T, N>& point) const
     {
         const Vec<T, N>& rbfCenter = kernelCenters[rbfId];
         Vec<T, N> diff = point - rbfCenter;
-        T dist = absVal(diff[0]);
+        // T dist = absVal(diff[0]);
+        T dist = diff.norm();
+        if (dist <= kernelFunction->influenceRegion())
+        {
+            result += coefficients[rbfId] * kernelFunction->value(diff);
+        }
+    }
+    return result;
+}
+
+template <typename T, uint N>
+T RBFs<T, N>::valueLocal(const Vec<T, N>& point, const std::vector<Index>& activeRBFIndices, const std::vector<T>& coefficients) const
+{
+    T result = 0;
+    for (uint rbfId = 0; rbfId<activeRBFIndices.size(); rbfId++)
+    {
+        const Index rbfIndex = activeRBFIndices[rbfId];
+        const Vec<T, N>& rbfCenter = kernelCenters[rbfIndex];
+        Vec<T, N> diff = point - rbfCenter;
+        T dist = diff.norm();
         if (dist <= kernelFunction->influenceRegion())
         {
             result += coefficients[rbfId] * kernelFunction->value(diff);

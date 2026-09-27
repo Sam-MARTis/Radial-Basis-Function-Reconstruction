@@ -16,9 +16,10 @@ class Solver
     T a;
     [[nodiscard]] bool verifyDomainIntegrity() const;
     void calculateFluxes();
-    void calculateRBFBasedFluxes(const RBFs<T, N>& rbfs, T dt);
+    [[deprecated]] void calculateRBFBasedFluxes(const RBFs<T, N>& rbfs, T dt);
     void updateCellAverages(T dt);
     void applyBoundaryConditions();
+    void reconstructSolutionAtEdges();
 
     public:
     // void prescribeBoundaryConditions(uint boundaryIndex, BOUNDARY_CONSTRAINT boundaryType, Vec<T, N+2> boundaryValue);
