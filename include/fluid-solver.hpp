@@ -12,8 +12,9 @@ class Solver
     uint dimension;
     uint numberOfCells;
     uint numberOfEdges;
+    std::vector<std::pair<BOUNDARY_CONSTRAINT, Vec<T, N+2>>> boundaryConditions;
     T a;
-    [[nodiscard]] bool verifyDomainIntegrity() const;
+    [[nodiscard]] [[deprecated]] bool verifyDomainIntegrity() const;
     void calculateFluxes();
     [[deprecated]] void calculateRBFBasedFluxes(const RBFs<T, N>& rbfs, T dt);
     void updateCellAverages(T dt);
@@ -22,7 +23,7 @@ class Solver
 
     public:
     void updateNeighbourhoodRBFCoeffsAndExtremums();
-    // void prescribeBoundaryConditions(uint boundaryIndex, BOUNDARY_CONSTRAINT boundaryType, Vec<T, N+2> boundaryValue);
+    void prescribeBoundaryConditions(uint boundaryIndex, BOUNDARY_CONSTRAINT boundaryType, Vec<T, N+2> boundaryValue);
     void prescribeBoundaryConditions(uint boundaryIndex, BOUNDARY_CONSTRAINT boundaryType);
     // void prescribeBoundaryConditions(uint boundaryIndex, BOUNDARY_CONSTRAINT boundaryType);
 

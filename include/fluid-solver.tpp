@@ -166,6 +166,8 @@ void Solver<T, N>::calculateRBFBasedFluxes(const RBFs<T, N>& rbfs, const T dt)
         // std::cout <<edgeProperty.numericalFlux;
     }
 }
+
+
 template <typename T, uint N>
 void Solver<T, N>::applyBoundaryConditions()
 {
@@ -282,6 +284,28 @@ void Solver<T, N>::reconstructSolutionAtEdges()
     }
 }
  */
+
+
+template <typename T, uint N>
+void Solver<T, N>::prescribeBoundaryConditions(uint boundaryIndex, BOUNDARY_CONSTRAINT boundaryType)
+{
+    assert(boundaryType != BOUNDARY_CONSTRAINT::DIRICHLET);
+    prescribeBoundaryConditions(boundaryIndex, boundaryType, Vec<T, N+2>(0));
+}
+
+template <typename T, uint N>
+void Solver<T, N>::prescribeBoundaryConditions(uint boundaryIndex, BOUNDARY_CONSTRAINT boundaryType, Vec<T, N+2> prescribedBoundaryValue)
+{
+    // assert(boundaryType != BOUNDARY_CONSTRAINT::DIRICHLET);
+    assert(boundaryConditions.size() == mesh.numBoundaries);
+    for (uint i=0; i<mesh.numBoundaries; i++)
+    {
+        if (mesh.boundaryIdentifiers[i].first == boundaryIndex)
+        {
+            boundaryConditions[i] = {boundaryType, prescribedBoundaryValue};
+        }
+    }
+}
 
 
 template <typename T, uint N>
