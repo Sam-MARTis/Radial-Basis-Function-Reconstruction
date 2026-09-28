@@ -19,8 +19,8 @@ template <typename T, uint N>
             T ub = mesh.edges.vertices[cellEdgeIndices[1]][0][0] - rbfCenter[0];
             T lb = mesh.edges.vertices[cellEdgeIndices[0]][0][0] - rbfCenter[0];
 
-            T ubAbs = absVal(ub);
-            T lbAbs = absVal(lb);
+            T ubAbs = std::abs(ub);
+            T lbAbs = std::abs(lb);
             if (lb*ub <0) // They have different signs
             {
                 ubAbs = ubAbs > kernelFunction->influenceRegion() ? kernelFunction->influenceRegion() : ubAbs;
@@ -106,7 +106,7 @@ T RBFs<T, N>::value(const Vec<T, N>& point) const
     {
         const Vec<T, N>& rbfCenter = kernelCenters[rbfId];
         Vec<T, N> diff = point - rbfCenter;
-        // T dist = absVal(diff[0]);
+        // T dist = std::abs(diff[0]);
         T dist = diff.norm();
         if (dist <= kernelFunction->influenceRegion())
         {
@@ -146,8 +146,8 @@ T RBFs<T, N>::integrate(T lb, T ub) const
         T lbLocal = lb - rbfCenter;
         T ubLocal = ub - rbfCenter;
 
-        T ubAbs = absVal(ubLocal);
-        T lbAbs = absVal(lbLocal);
+        T ubAbs = std::abs(ubLocal);
+        T lbAbs = std::abs(lbLocal);
         if (lbLocal*ubLocal <0) // They have different signs
         {
             ubAbs = ubAbs > influenceRadius ? influenceRadius : ubAbs;
@@ -181,7 +181,7 @@ T RBFs<T, N>::integrate(T lb, T ub) const
 }
 
 template <typename T, uint N>
-void RBFs<T, N>::computeLocalCellConnectivityMatrix(const Mesh<T, N>& mesh)
+void RBFs<T, N>::computeLocalCellConnectivityMatrix(Mesh<T, N>& mesh)
 {
     assert(N==1); // Only implemented for 1D for now. For 2D -> Gauss integration of triangles
     #pragma omp parallel for
@@ -205,12 +205,12 @@ void RBFs<T, N>::computeLocalCellConnectivityMatrix(const Mesh<T, N>& mesh)
             {
                 const Index cellId = neighbourCellIndices[i];
                 T res = 0;
-                const std::array<uint, static_cast<uint>(1) << N>& cellEdgeIndices = mesh.cells.edgeIndices[cellId];
+                const std::vector<Index>& cellEdgeIndices = mesh.cells.edgeIndices[cellId];
                 T ub = mesh.edges.vertices[cellEdgeIndices[1]][0][0] - rbfCenter[0];
                 T lb = mesh.edges.vertices[cellEdgeIndices[0]][0][0] - rbfCenter[0];
 
-                T ubAbs = absVal(ub);
-                T lbAbs = absVal(lb);
+                T ubAbs = std::abs(ub);
+                T lbAbs = std::abs(lb);
                 if (lb*ub <0) // They have different signs
                 {
                     ubAbs = ubAbs > kernelFunction->influenceRegion() ? kernelFunction->influenceRegion() : ubAbs;
@@ -240,7 +240,7 @@ void RBFs<T, N>::computeLocalCellConnectivityMatrix(const Mesh<T, N>& mesh)
             }
         }
 
-        neighbourhood.ALocalInv.copyDataFrom(MatrixSolver<T>::matrixInverse(ALocal));
+        neighbourhood.ALocalInv.copyDataFrom(MatrixSolver<T>::inverse(ALocal));
     }
 }
 

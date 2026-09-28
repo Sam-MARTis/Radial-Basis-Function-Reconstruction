@@ -37,7 +37,7 @@ class RBFs{
         assert(_numCells == _numFunctions);
     }
     [[deprecated]] void computeConnectivityMatrix(const Mesh<T, N> &mesh);
-    void computeLocalCellConnectivityMatrix(const Mesh<T, N> &mesh);
+    void computeLocalCellConnectivityMatrix(Mesh<T, N> &mesh);
     void computeCoefficientDerivatives(uint maxIterations, T tolerance);
     [[deprecated]] void computeRBFCoefficients(const std::vector<T>& cellAveragesX, uint maxIterations, T tolerance);
     [[deprecated]]void computeRBFCoefficientsViaDerivatives(const std::vector<T>& cellAveragesX);

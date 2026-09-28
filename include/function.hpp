@@ -92,7 +92,7 @@ public:
     }
     T influenceRegion() const override
     {
-        assert(absVal(invInfluenceRadius - 1.0/influenceRadius) < EPSILON1);
+        assert(std::abs(invInfluenceRadius - 1.0/influenceRadius) < EPSILON1);
         return influenceRadius;
     }
     T integrate(T lb, T ub) const override

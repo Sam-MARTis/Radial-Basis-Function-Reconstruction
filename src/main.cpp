@@ -34,11 +34,11 @@ int main()
     double dt = 0.1;
     int solverPerRender = 10;
     MeshGenerator meshGen(1, Vec<double, 2>{0.0, DOMAIN_X_MAX}, numCells, MeshType::CARTESIAN);
-    MeshGenerator meshGen2(1, Vec<double, 2>{0.0, DOMAIN_X_MAX}, numCells, MeshType::CARTESIAN);
+    // MeshGenerator meshGen2(1, Vec<double, 2>{0.0, DOMAIN_X_MAX}, numCells, MeshType::CARTESIAN);
     Mesh<double, 1> mesh = meshGen.generateMesh();
-    Mesh<double, 1> mesh2 = meshGen2.generateMesh();
-    Solver<double, 1> solver(mesh.edges, mesh.cells, 0.1);
-    Solver<double, 1> solver2(mesh2.edges, mesh2.cells, 0.1);
+    // Mesh<double, 1> mesh2 = meshGen2.generateMesh();
+    Solver<double, 1> solver(mesh);
+    // Solver<double, 1> solver2(mesh2);
 
     auto kernel = std::make_unique<WendlandFunction<double, 1>>(10 * DOMAIN_X_MAX/static_cast<double>(numCells));
     RBFs<double, 1> rbfs(
@@ -47,13 +47,13 @@ int main()
         mesh.cells.cellCentersPositions,
         std::move(kernel)
         );
-
-    rbfs.computeConnectivityMatrix(mesh);
-    std::cout << "Connectivity matrix computed." << std::endl;
-    float toleranceRBFExponent = -4.0;
-    uint maxIterationsRBF = 1000;
-    rbfs.computeCoefficientDerivatives(maxIterationsRBF*10, pow(10, toleranceRBFExponent));
-    std::cout << "Coefficient derivatives computed." << std::endl;
+    rbfs.computeLocalCellConnectivityMatrix(mesh);
+    // rbfs.computeConnectivityMatrix(mesh);
+    // std::cout << "Connectivity matrix computed." << std::endl;
+    // float toleranceRBFExponent = -4.0;
+    // uint maxIterationsRBF = 1000;
+    // rbfs.computeCoefficientDerivatives(maxIterationsRBF*10, pow(10, toleranceRBFExponent));
+    // std::cout << "Coefficient derivatives computed." << std::endl;
     
     auto doStep = [&]()
     {
