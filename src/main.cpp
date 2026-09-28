@@ -36,9 +36,44 @@ int main()
     MeshGenerator meshGen(1, Vec<double, 2>{0.0, DOMAIN_X_MAX}, numCells, MeshType::CARTESIAN);
     // MeshGenerator meshGen2(1, Vec<double, 2>{0.0, DOMAIN_X_MAX}, numCells, MeshType::CARTESIAN);
     Mesh<double, 1> mesh = meshGen.generateMesh();
+    mesh.fixEdgesConnectivityOrder();
+    Vec<double, 1> center = (mesh.boundingBox.first + mesh.boundingBox.second)*0.5;
+    Vec<double, 1> halfSpan = (mesh.boundingBox.second - mesh.boundingBox.first)*0.5;
+
+    HyperCuboid<double, 1> leftBoundaryBoundingBox(center - halfSpan*1.1, center - halfSpan*0.9);
+    HyperCuboid<double, 1> rightBoundaryBoundingBox(center + halfSpan*0.9, center + halfSpan*1.1);
+    HyperCuboid<double, 1> superDomain(center - halfSpan*1.1, center + halfSpan*1.1);
+    HyperCuboid<double, 1> leftHalfDomain(center - halfSpan*1.1, center);
+    HyperCuboid<double, 1> rightHalfDomain(center, center + halfSpan*1.1);
+
+    std::vector<std::pair<uint, std::unique_ptr<Domain<double, 1>>>> boundaryDomains;
+    boundaryDomains.emplace_back(0, std::make_unique<HyperCuboid<double, 1>>(leftBoundaryBoundingBox));
+    boundaryDomains.emplace_back(1, std::make_unique<HyperCuboid<double, 1>>(rightBoundaryBoundingBox));
+    #define DO_STEP
+    mesh.identifyBoundaryEdgesAndCells(boundaryDomains);
+    const double rhoL = 1.0;
+    const double rhoR = 0.125;
+    const double pL = 1.0;
+    const double pR = 0.1;
+    const double uL = 0.75;
+    const double uR = 0.0;
+    const double EL = EulerEquations<double, 1>::getEFromPressureRhoVMagSq(pL, rhoL, uL*uL);
+    const double ER = EulerEquations<double, 1>::getEFromPressureRhoVMagSq(pR, rhoR, uR*uR);
+
+    Vec<double, 1+2> leftState{rhoL, rhoL*uL, EL};
+    Vec<double, 1+2> rightState{rhoR, rhoR*uR, ER};
+
+    Constraint<double, 1>::DirichletCondition(mesh, superDomain, rightState);
+    Constraint<double, 1>::DirichletCondition(mesh, leftHalfDomain, leftState);
+
+
     // Mesh<double, 1> mesh2 = meshGen2.generateMesh();
     Solver<double, 1> solver(mesh);
     // Solver<double, 1> solver2(mesh2);
+
+    solver.prescribeBoundaryConditions(0, BOUNDARY_CONSTRAINT::DIRICHLET, leftState);
+    solver.prescribeBoundaryConditions(1, BOUNDARY_CONSTRAINT::DIRICHLET, rightState);
+
 
     auto kernel = std::make_unique<WendlandFunction<double, 1>>(10 * DOMAIN_X_MAX/static_cast<double>(numCells));
     RBFs<double, 1> rbfs(
@@ -48,37 +83,7 @@ int main()
         std::move(kernel)
         );
     rbfs.computeLocalCellConnectivityMatrix(mesh);
-    // rbfs.computeConnectivityMatrix(mesh);
-    // std::cout << "Connectivity matrix computed." << std::endl;
-    // float toleranceRBFExponent = -4.0;
-    // uint maxIterationsRBF = 1000;
-    // rbfs.computeCoefficientDerivatives(maxIterationsRBF*10, pow(10, toleranceRBFExponent));
-    // std::cout << "Coefficient derivatives computed." << std::endl;
 
-//     auto doStep = [&]()
-//     {
-//         for (uint iter= 0; iter< solverPerRender; iter++)
-// {
-//             std::vector<double> plotY;
-//             // std::vector<double> plotY2;
-//             // std::vector<double> plotYRBFs;
-//             // plotX.reserve(mesh.cells.cellCentersPositions.size());
-//             plotY.reserve(mesh.cells.cellAverages.size());
-//             for (const auto& avg : mesh.cells.cellAverages)
-//             {
-//                 plotY.push_back(avg[0]);
-//             }
-//             // rbfs.computeRBFCoefficients(plotY)
-//             // rbfs.computeRBFCoefficients(plotY, maxIterationsRBF, pow(10, toleranceRBFExponent));
-//             rbfs.computeRBFCoefficientsViaDerivatives(plotY);
-//             // std::cout << "RBF coefficients computed." << std::endl;
-//             solver.stepRBFBased(rbfs, dt);
-//             solver2.step(dt);
-//             // solver.step(dt);
-//             // std::cout << "Stepping"<<std::endl;
-//             // std::cout << "mesh average: "<< mesh.cells.cellAverages[10][0] <<std::endl;
-//         }
-//     };
 
     while(window.isOpen()){
         window.clear(sf::Color::Black);
