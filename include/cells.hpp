@@ -15,7 +15,7 @@ struct EdgeProperty
     Vec<T, N+2> numericalFlux;
     std::pair<Vec<T, N+2>, Vec<T, N+2>> reconstructedPushedU; // If normal . direction > 0, use element 1, else 0.
     std::pair<Index, Index> connectingCells;
-    T measure = 0;
+    T measure = 1;
 };
 
 
@@ -40,6 +40,7 @@ struct Neighbourhood
     std::vector<Index> neighbourCellIndices;
     std::array<std::vector<T>, N+2> rbfCoefficients;
     Matrix<T> ALocalInv;
+    std::pair<Vec<T, N+2>, Vec<T, N+2>> extremeValues;
 };
 
 template <typename T, uint N>

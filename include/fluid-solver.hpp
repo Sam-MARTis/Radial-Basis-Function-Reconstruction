@@ -46,12 +46,12 @@ class Solver
         {
             applyBoundaryConditions();
         }
-        {
-            calculateFluxes();
-        }
-        {
-            updateCellAverages(dt);
-        }
+        // {
+        //     calculateFluxes();
+        // }
+        // {
+        //     updateCellAverages(dt);
+        // }
     }
     void stepPiecewise(T dt)
     {

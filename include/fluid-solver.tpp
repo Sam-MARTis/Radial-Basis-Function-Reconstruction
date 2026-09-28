@@ -253,10 +253,10 @@ void Solver<T, N>::updateNeighbourhoodRBFCoeffsAndExtremums()
 #pragma omp parallel for
     for (Index cellId = 0; cellId<mesh.numCells; cellId++)
     {
-        const Neighbourhood<T, N>& neighbourhood = mesh.cells.neighbourhoods[cellId];
+        Neighbourhood<T, N>& neighbourhood = mesh.cells.neighbourhoods[cellId];
         const std::vector<Index>& neighbourCellIndices = neighbourhood.neighbourCellIndices;
         const uint numNeighbours = neighbourhood.numNeighbours;
-        std::vector<Vec<T, N+1>> localNeighbourAverages(numNeighbours);
+        std::vector<Vec<T, N+2>> localNeighbourAverages(numNeighbours);
         Vec<T, N+2>& minU = neighbourhood.extremeValues.first;
         Vec<T, N+2>& maxU = neighbourhood.extremeValues.second;
         for (uint fieldIdx = 0; fieldIdx < N+2; fieldIdx++) {
@@ -358,7 +358,7 @@ void Solver<T, N>::reconstructSolutionAtEdgesViaRBFs(const RBFs<T, N>& rbfs)
 
         const std::vector<Index>& cellEdgeIndices = mesh.cells.edgeIndices[currentCellIdx];
         const Vec<T, N>& cellCenter = mesh.cells.cellCentersPositions[currentCellIdx];
-        const Vec<Vec<T, N>, N+2>& cellGradients = mesh.cells.reconstructedCellGradients[currentCellIdx];
+        // const Vec<Vec<T, N>, N+2>& cellGradients = mesh.cells.reconstructedCellGradients[currentCellIdx];
         for (Index edgeIdx : cellEdgeIndices)
         {
             EdgeProperty<T, N>& edgeProperty = mesh.edges.edgeProperty[edgeIdx];
