@@ -28,9 +28,5 @@ constexpr double DOMAIN_X_MAX = 10.0;
 constexpr uint DEFAULT_NEIGHBOURHOOD_DEPTH = 3;
 
 
-template <typename T>
-constexpr T absVal(T value) {
-    return (value < 0) ? -value : value;
-}
 
 constexpr double CV = 1.0;

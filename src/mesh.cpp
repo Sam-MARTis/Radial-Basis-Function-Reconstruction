@@ -23,17 +23,19 @@ Mesh<double, 1> MeshGenerator::generateMesh()
     double targetPoint =  20*cellSize;
     for (uint i = 0; i < numberOfCells + 1; i++)
     {
+        const Vec<double, 1> edgePoint{domainBounds[0] + static_cast<double>(i) * cellSize};
         
         // Create edges
         // if (i < numberOfCells+1)
         // {
-            EdgeProperty<double, 1> edge;
-            edge.connectingCells = {i==0 ? numberOfCells : i-1, i};
-            edge.normal = {1.0}; // Normal pointing from left to right
-            edge.numericalFlux = Vec<double, 1+2>(0); // Initialize numerical flux to zero
-            mesh.edges.edgeProperty.push_back(edge);
-            mesh.edges.vertices.push_back({Vec<double, 1>{domainBounds[0] + (i) * cellSize}});
-            edge.reconstructedPushedU = {Vec<double, 1+2>(0), Vec<double, 1+2>(0)};
+        EdgeProperty<double, 1> edge;
+        edge.connectingCells = {i==0 ? numberOfCells : i-1, i};
+        edge.normal = {1.0}; // Normal pointing from left to right
+        edge.numericalFlux = Vec<double, 1+2>(0); // Initialize numerical flux to zero
+        edge.reconstructedPushedU = {Vec<double, 1+2>(0), Vec<double, 1+2>(0)};
+        mesh.edges.edgeProperty.push_back(edge);
+        mesh.edges.vertices.push_back({edgePoint});
+        mesh.edges.edgeEvaluationPoints.push_back(edgePoint);
 
         // }
 
@@ -47,6 +49,8 @@ Mesh<double, 1> MeshGenerator::generateMesh()
 
 
     mesh.numEdges = mesh.edges.edgeProperty.size();
+    mesh.boundingBox.first = Vec<double, 1>{domainBounds[0]};
+    mesh.boundingBox.second = Vec<double, 1>{domainBounds[1]};
     Mesh<double, 1>::initializeNeighbourhood(mesh, DEFAULT_NEIGHBOURHOOD_DEPTH);
     return mesh;
 }

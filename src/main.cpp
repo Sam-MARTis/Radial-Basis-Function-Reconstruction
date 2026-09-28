@@ -27,11 +27,13 @@ int main()
         std::cerr << "SFML Init failed." << std::endl;
     ImPlot::CreateContext();
     window.setFramerateLimit(60);
+
+
     std::cout << "RenderWindow setup successful." << std::endl;
 
 
     uint numCells = 100;
-    double dt = 0.1;
+    double dt = 0.01;
     int solverPerRender = 10;
     MeshGenerator meshGen(1, Vec<double, 2>{0.0, DOMAIN_X_MAX}, numCells, MeshType::CARTESIAN);
     // MeshGenerator meshGen2(1, Vec<double, 2>{0.0, DOMAIN_X_MAX}, numCells, MeshType::CARTESIAN);
@@ -55,13 +57,13 @@ int main()
     const double rhoR = 0.125;
     const double pL = 1.0;
     const double pR = 0.1;
-    const double uL = 0.75;
+    const double uL = 0.05;
     const double uR = 0.0;
     const double EL = EulerEquations<double, 1>::getEFromPressureRhoVMagSq(pL, rhoL, uL*uL);
     const double ER = EulerEquations<double, 1>::getEFromPressureRhoVMagSq(pR, rhoR, uR*uR);
 
-    Vec<double, 1+2> leftState{rhoL, rhoL*uL, EL};
-    Vec<double, 1+2> rightState{rhoR, rhoR*uR, ER};
+    Vec<double, 1+2> leftState{1.0, 0.0, 1.0};
+    Vec<double, 1+2> rightState{0.125, 0.0, 0.1};
 
     Constraint<double, 1>::DirichletCondition(mesh, superDomain, rightState);
     Constraint<double, 1>::DirichletCondition(mesh, leftHalfDomain, leftState);
@@ -73,7 +75,7 @@ int main()
 
     solver.prescribeBoundaryConditions(0, BOUNDARY_CONSTRAINT::DIRICHLET, leftState);
     solver.prescribeBoundaryConditions(1, BOUNDARY_CONSTRAINT::DIRICHLET, rightState);
-
+    std::cout<<"Boundary conditions prescribed."<<std::endl;
 
     auto kernel = std::make_unique<WendlandFunction<double, 1>>(10 * DOMAIN_X_MAX/static_cast<double>(numCells));
     RBFs<double, 1> rbfs(
@@ -83,7 +85,7 @@ int main()
         std::move(kernel)
         );
     rbfs.computeLocalCellConnectivityMatrix(mesh);
-
+    std::cout<<"RBFs initialized."<<std::endl;
 
     while(window.isOpen()){
         window.clear(sf::Color::Black);
@@ -103,9 +105,11 @@ int main()
         // ImGui::Text("Iterations = %d", maxIterationsRBF);
         for (uint iter = 0; iter < solverPerRender; iter++)
         {
-            solver.stepRBFBased(rbfs, dt);
+            // solver.stepRBFBased(rbfs, dt);
+            solver.stepPiecewise(dt);
         }
 
+        std::cout<<"Solver steps completed."<<std::endl;
         // ImPlot::SetNextAxesToFit();
 
         // rbfs.computeRBFCoefficients(mesh.cells.cellAverages);
@@ -143,11 +147,11 @@ int main()
             //     plotYRBFs.push_back(rbfs.value(pos));
             // }
             // std::cout<<EnergyLog.data()<<std::endl;
-            ImPlot::SetupAxes("x", "u");
+            ImPlot::SetupAxes("x", "rho");
             // std::cout<<"RBF plot [0] = "<<plotYRBFs[0]<<", [1] = "<<plotYRBFs[1]<<", [2] = "<<plotYRBFs[2]<<std::endl;
-            // ImPlot::PlotLine("u", plotX.data(), plotY.data(), static_cast<int>(plotY.size()));
-            ImPlot::PlotLine("u_RBFs", plotX.data(), plotYRBFs.data(), static_cast<int>(plotYRBFs.size()));
-            ImPlot::PlotLine("u2", plotX.data(), plotY2.data(), static_cast<int>(plotY2.size()));
+            ImPlot::PlotLine("rho", plotX.data(), plotY.data(), static_cast<int>(plotY.size()));
+            // ImPlot::PlotLine("u_RBFs", plotX.data(), plotYRBFs.data(), static_cast<int>(plotYRBFs.size()));
+            // ImPlot::PlotLine("u2", plotX.data(), plotY2.data(), static_cast<int>(plotY2.size()));
             ImPlot::EndPlot();
         }
         ImGui::End();

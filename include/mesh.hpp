@@ -112,7 +112,13 @@ void Mesh<T, N>::fixEdgesConnectivityOrder()
                 edgeCenter += edges.vertices[edgeIdx][i];
             }
             // auto edgeVertex1 = edges.vertices[edgeIdx][0];
-            edgeProperty.measure = (edges.vertices[edgeIdx][1] - edges.vertices[edgeIdx][0]).norm();
+            // In 1D an edge is a single point, so it has unit measure. Only
+            // edges with more than one vertex (N >= 2) have a geometric length.
+            constexpr uint numEdgeVertices = static_cast<uint>(1) << (N - 1);
+            if constexpr (numEdgeVertices > 1)
+            {
+                edgeProperty.measure = (edges.vertices[edgeIdx][numEdgeVertices - 1] - edges.vertices[edgeIdx][0]).norm();
+            }
             // std::cout<<"Edge "<<edgeIdx<<" measure: "<<edgeProperty.measure<<std::endl;
             edgeCenter *= static_cast<T>(1.0/(1<<(N-1)));
             if (sourceCellIndex>= numCells)
@@ -193,9 +199,18 @@ void Mesh<T, N>::identifyBoundaryEdgesAndCells(const  std::vector<std::pair<uint
             for (Index boundaryCheckIdx = 0; boundaryCheckIdx < numSuppliedBoundaryDomains; boundaryCheckIdx++)
             {
                 const auto& [boundaryIdTag, boundaryDomain] = boundaryDomains[boundaryCheckIdx];
-                const Vec<T, N>& edgeVertex1 = edges.vertices[edgeIdx][0];
-                const Vec<T, N>& edgeVertex2 = edges.vertices[edgeIdx][1];
-                if (boundaryDomain->isInside(edgeVertex1) && boundaryDomain->isInside(edgeVertex2))
+                // An edge has (1 << (N-1)) vertices; in 1D that is a single point,
+                // so indexing [1] here would read out of bounds.
+                bool entirelyInside = true;
+                for (uint vertexIdx = 0; vertexIdx < (static_cast<uint>(1) << (N - 1)); vertexIdx++)
+                {
+                    if (!boundaryDomain->isInside(edges.vertices[edgeIdx][vertexIdx]))
+                    {
+                        entirelyInside = false;
+                        break;
+                    }
+                }
+                if (entirelyInside)
                 {
                     uint boundaryIdx = boundaryIdToIndexMapping.at(boundaryIdTag);
                     boundaryIdentifiers[boundaryIdx].second.push_back(edgeIdx);

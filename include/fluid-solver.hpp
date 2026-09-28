@@ -37,21 +37,27 @@ class Solver
     // }
     void stepRBFBased(const RBFs<T, N>& rbfs, T dt)
     {
+
         {
             updateNeighbourhoodRBFCoeffsAndExtremums();
+            std::cout<< "Neighbourhood RBF coefficients and extremums updated."<<std::endl;
         }
         {
             reconstructSolutionAtEdgesViaRBFs(rbfs);
+            std::cout<< "Solution reconstructed at edges via RBFs."<<std::endl;
         }
         {
             applyBoundaryConditions();
+            std::cout<< "Boundary conditions applied."<<std::endl;
         }
-        // {
-        //     calculateFluxes();
-        // }
-        // {
-        //     updateCellAverages(dt);
-        // }
+        {
+            calculateFluxes();
+            std::cout<< "Fluxes calculated."<<std::endl;
+        }
+        {
+            updateCellAverages(dt);
+            std::cout<< "Cell averages updated."<<std::endl;
+        }
     }
     void stepPiecewise(T dt)
     {

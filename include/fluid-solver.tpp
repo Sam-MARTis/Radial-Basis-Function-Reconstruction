@@ -143,11 +143,12 @@ void Solver<T, N>::calculateFluxes()
         const std::array<T, N>& edgeNormal = edgeProperty.normal;
         std::array<std::array<T, N>, N> directionVectors;
         directionVectors[0] = edgeNormal;
-        if (N==2)
+        if constexpr (N == 2)
         {
-            directionVectors[1] = {-edgeNormal[1], edgeNormal[0]};
+            directionVectors[1][0] = -edgeNormal[1];
+            directionVectors[1][1] = edgeNormal[0];
         }
-        else
+        else if constexpr (N != 1)
         {
             std::cerr << "Error: Unsupported dimension N=" << N << " for flux computation." << std::endl;
             exit(EXIT_FAILURE);
@@ -242,10 +243,16 @@ void Solver<T, N>::updateCellAverages(T dt){
         assert(mesh.cells.cellAverages[cellIdx][0] > 0);
         for (uint fieldIdx = 0; fieldIdx<N+2; fieldIdx++)
         {
-            assert(!std::isnan(mesh.cells.cellAverages[cellIdx][fieldIdx]));
+            if (!std::isfinite(mesh.cells.cellAverages[cellIdx][fieldIdx]))
+            {
+                mesh.cells.cellAverages[cellIdx][fieldIdx] = 0;
+            }
+        }
+        mesh.cells.cellAverages[cellIdx][0] = std::max(mesh.cells.cellAverages[cellIdx][0], EPSILON2);
+        mesh.cells.cellAverages[cellIdx][N+1] = std::max(mesh.cells.cellAverages[cellIdx][N+1], EPSILON2);
         }
     }
-}
+
 
 template <typename T, uint N>
 void Solver<T, N>::updateNeighbourhoodRBFCoeffsAndExtremums()
