@@ -14,8 +14,8 @@ constexpr double DEFAULT_SCREEN_HEIGHT = 800;
 constexpr double EPSILON1 = 1e-12;
 constexpr double EPSILON2 = 1e-8;
 constexpr double EPSILON3 = 1e-4;
-constexpr double LIMITER_K = 0.001;
-constexpr double EIGENVALUE_SMOOTHENING_DELTA = 0.25;
+constexpr double LIMITER_K = 0.1;
+constexpr double EIGENVALUE_SMOOTHENING_DELTA = 0.15;
 constexpr double SMOOTH_EIGENVALUE_MAGNITUDE(const double lambda)
 {
     const double lambdaMagnitude = std::abs(lambda);
@@ -25,7 +25,10 @@ constexpr double SMOOTH_EIGENVALUE_MAGNITUDE(const double lambda)
 
 
 constexpr double DOMAIN_X_MAX = 10.0;
-constexpr uint DEFAULT_NEIGHBOURHOOD_DEPTH = 3;
+constexpr uint DEFAULT_NEIGHBOURHOOD_DEPTH = 4;
+
+
+constexpr double RBF_FIRST_ORDER_BLEND = 0.15;
 
 
 

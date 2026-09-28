@@ -32,8 +32,8 @@ int main()
     std::cout << "RenderWindow setup successful." << std::endl;
 
 
-    uint numCells = 100;
-    double dt = 0.01;
+    uint numCells = 1000;
+    double dt = 0.001;
     int solverPerRender = 10;
     MeshGenerator meshGen(1, Vec<double, 2>{0.0, DOMAIN_X_MAX}, numCells, MeshType::CARTESIAN);
     // MeshGenerator meshGen2(1, Vec<double, 2>{0.0, DOMAIN_X_MAX}, numCells, MeshType::CARTESIAN);
@@ -77,7 +77,7 @@ int main()
     solver.prescribeBoundaryConditions(1, BOUNDARY_CONSTRAINT::DIRICHLET, rightState);
     std::cout<<"Boundary conditions prescribed."<<std::endl;
 
-    auto kernel = std::make_unique<WendlandFunction<double, 1>>(10 * DOMAIN_X_MAX/static_cast<double>(numCells));
+    auto kernel = std::make_unique<WendlandFunction<double, 1>>(4 * DOMAIN_X_MAX/static_cast<double>(numCells));
     RBFs<double, 1> rbfs(
         numCells,
         numCells,
@@ -105,8 +105,8 @@ int main()
         // ImGui::Text("Iterations = %d", maxIterationsRBF);
         for (uint iter = 0; iter < solverPerRender; iter++)
         {
-            // solver.stepRBFBased(rbfs, dt);
-            solver.stepPiecewise(dt);
+            solver.stepRBFBased(rbfs, dt);
+            // solver.stepPiecewise(dt);
         }
 
         std::cout<<"Solver steps completed."<<std::endl;

@@ -155,7 +155,19 @@ void Solver<T, N>::calculateFluxes()
         }
         {
             // Profiler profiler("calculateFluxes::RoeFlux");
-            edgeProperty.numericalFlux = RoeFlux<T, N>::computeNumericalFlux(UL, UR, directionVectors);
+            const Vec<T, N+2> highOrderFlux = RoeFlux<T, N>::computeNumericalFlux(UL, UR, directionVectors);
+            if constexpr (RBF_FIRST_ORDER_BLEND > 0.0)
+            {
+
+                const Vec<T, N+2>& cellLAverage = mesh.cells.cellAverages[edgeProperty.connectingCells.first];
+                const Vec<T, N+2>& cellRAverage = mesh.cells.cellAverages[edgeProperty.connectingCells.second];
+                const Vec<T, N+2> firstOrderFlux = RoeFlux<T, N>::computeNumericalFlux(cellLAverage, cellRAverage, directionVectors);
+                edgeProperty.numericalFlux = (1.0 - RBF_FIRST_ORDER_BLEND) * highOrderFlux + RBF_FIRST_ORDER_BLEND * firstOrderFlux;
+            }
+            else
+            {
+                edgeProperty.numericalFlux = highOrderFlux;
+            }
         }
             // edgeProperty.numericalFlux = RussanovFlux<T, N>::computeNumericalFlux(cellLAverage, cellRAverage, directionVectors);
         /*
