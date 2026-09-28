@@ -6,10 +6,11 @@
 template <typename T>
 class Matrix
 {
-    uint rows;
-    uint columns;
+    uint rows = 0;
+    uint columns = 0;
 public:
     std::vector<T> data;
+    Matrix() = default;
     Matrix(const uint _rows, const uint _columns): rows(_rows), columns(_columns), data(rows * columns) {}
     T& operator()(const uint row, const uint column)
     {
@@ -21,6 +22,17 @@ public:
     }
     [[nodiscard]] uint numRows() const { return rows; }
     [[nodiscard]] uint numColumns() const { return columns; }
+    void resize(const uint _rows, const uint _columns)
+    {
+        rows = _rows;
+        columns = _columns;
+        data.resize(rows * columns);
+    }
+    void copyDataFrom(const Matrix<T>& other)
+    {
+        assert(rows == other.rows && columns == other.columns);
+        std::copy(other.data.begin(), other.data.end(), data.begin());
+    }
 };
 
 template <typename T>

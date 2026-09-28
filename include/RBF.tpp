@@ -3,7 +3,7 @@
 #include <omp.h>
 
 template <typename T, uint N>
-void RBFs<T, N>::computeConnectivityMatrix(const Mesh<T, N> &mesh)
+[[deprecated]] void RBFs<T, N>::computeConnectivityMatrix(const Mesh<T, N> &mesh)
 {
     assert(N==1); // Only implemented for 1D for now
     #pragma omp parallel for
@@ -56,7 +56,7 @@ void RBFs<T, N>::computeConnectivityMatrix(const Mesh<T, N> &mesh)
 }
 
 template <typename T, uint N>
-void RBFs<T, N>::computeRBFCoefficients(const std::vector<T>& cellAveragesX, const uint maxIterations, const T tolerance)
+[[deprecated]] void RBFs<T, N>::computeRBFCoefficients(const std::vector<T>& cellAveragesX, const uint maxIterations, const T tolerance)
 {
     assert(N==1);
     // std::cout << "CellAveragesX.size() = " << cellAveragesX.size() << std::endl;
@@ -66,7 +66,7 @@ void RBFs<T, N>::computeRBFCoefficients(const std::vector<T>& cellAveragesX, con
 };
 
 template <typename T, uint N>
-void RBFs<T, N>::computeCoefficientDerivatives(const uint maxIterations, const T tolerance)
+[[deprecated]] void RBFs<T, N>::computeCoefficientDerivatives(const uint maxIterations, const T tolerance)
 {
     #pragma omp parallel for
     for (uint cellID=0; cellID<numRBFs; cellID++)
@@ -81,7 +81,7 @@ void RBFs<T, N>::computeCoefficientDerivatives(const uint maxIterations, const T
 }
 
 template <typename T, uint N>
-void RBFs<T, N>::computeRBFCoefficientsViaDerivatives(const std::vector<T>& cellAveragesX)
+[[deprecated]] void RBFs<T, N>::computeRBFCoefficientsViaDerivatives(const std::vector<T>& cellAveragesX)
 {
     for (uint rbfID=0; rbfID<numRBFs; rbfID++)
     {
@@ -240,7 +240,7 @@ void RBFs<T, N>::computeLocalCellConnectivityMatrix(const Mesh<T, N>& mesh)
             }
         }
 
-        neighbourhood.ALocalInv = MatrixSolver<T>::inverse(ALocal);
+        neighbourhood.ALocalInv.copyDataFrom(MatrixSolver<T>::matrixInverse(ALocal));
     }
 }
 

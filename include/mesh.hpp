@@ -46,7 +46,7 @@ class MeshGenerator{
 
 
 template <typename T, uint N>
-void Mesh<T, N>::initializeNeighbourhood(Mesh<T, N>& mesh, uint depth)
+void Mesh<T, N>::initializeNeighbourhood(Mesh<T, N>& mesh, const uint depth)
 {
     assert(mesh.cells.neighbourhoods.size() == 0);
     for (Index cellId = 0; cellId < mesh.numCells; cellId++)
@@ -54,8 +54,8 @@ void Mesh<T, N>::initializeNeighbourhood(Mesh<T, N>& mesh, uint depth)
         Neighbourhood<T, N> neighbourhood;
         neighbourhood.numNeighbours = 0;
         // neighbourhood.neighbourCellIndices.clear();
-        neighbourhood.rbfCoefficients.clear();
-        neighbourhood.ALocalInv = Matrix<T>(depth, depth);
+        // neighbourhood.rbfCoefficients.clear();
+        // neighbourhood.ALocalInv = Matrix<T>(depth, depth);
         std::set<Index> neighbourhoodSets = {cellId};
         for (uint currentDepth = 0; currentDepth < depth; currentDepth++)
         {
@@ -86,6 +86,7 @@ void Mesh<T, N>::initializeNeighbourhood(Mesh<T, N>& mesh, uint depth)
         }
         neighbourhood.numNeighbours = neighbourhood.neighbourCellIndices.size();
         neighbourhood.rbfCoefficients = std::array<std::vector<T>, N+2>();
+        neighbourhood.ALocalInv.resize(neighbourhood.numNeighbours, neighbourhood.numNeighbours);
         mesh.cells.neighbourhoods.push_back(neighbourhood);
     }
 }
@@ -206,7 +207,6 @@ void Mesh<T, N>::identifyBoundaryEdgesAndCells(const  std::vector<std::pair<uint
             domainEdgesIndices.push_back(edgeIdx);
         }
     }
-
 }
 
 

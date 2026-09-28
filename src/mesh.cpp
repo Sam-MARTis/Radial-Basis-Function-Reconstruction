@@ -47,6 +47,6 @@ Mesh<double, 1> MeshGenerator::generateMesh()
 
 
     mesh.numEdges = mesh.edges.edgeProperty.size();
-    Mesh<double, 1>::initializeNeighbourhood(mesh, 1);
+    Mesh<double, 1>::initializeNeighbourhood(mesh, DEFAULT_NEIGHBOURHOOD_DEPTH);
     return mesh;
 }
