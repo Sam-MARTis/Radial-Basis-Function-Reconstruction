@@ -58,24 +58,13 @@ public:
     static Matrix<double> inverse(const Matrix<double>& A)
     {
         assert(A.numRows() == A.numColumns());
-
         const uint n = A.numRows();
 
-        Eigen::Map<const EigenMatrix> eigenA(
-            A.data.data(),
-            n,
-            n
-        );
-
+        Eigen::Map<const EigenMatrix> eigenA(A.data.data(),n,n);
         EigenMatrix eigenInv = eigenA.inverse();
-
+        
         Matrix<double> result(n, n);
-
-        std::copy(
-            eigenInv.data(),
-            eigenInv.data() + n * n,
-            result.data.begin()
-        );
+        std::copy(eigenInv.data(), eigenInv.data() + n * n, result.data.begin());
 
         return result;
     }

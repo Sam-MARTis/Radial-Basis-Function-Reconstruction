@@ -133,6 +133,25 @@ T RBFs<T, N>::valueLocal(const Vec<T, N>& point, const std::vector<Index>& activ
     }
     return result;
 }
+
+template <typename T, uint N>
+Vec<T, N> RBFs<T, N>::gradientLocal(const Vec<T, N>& point, const std::vector<Index>& activeRBFIndices, const std::vector<T>& coefficients) const
+{
+    Vec<T, N> result(0);
+    for (uint rbfId = 0; rbfId<activeRBFIndices.size(); rbfId++)
+    {
+        const Index rbfIndex = activeRBFIndices[rbfId];
+        const Vec<T, N>& rbfCenter = kernelCenters[rbfIndex];
+        Vec<T, N> diff = point - rbfCenter;
+        T dist = diff.norm();
+        if (dist <= kernelFunction->influenceRegion())
+        {
+            result += coefficients[rbfId] * kernelFunction->gradient(diff);
+        }
+    }
+    return result;
+}
+
 template <typename T, uint N>
 T RBFs<T, N>::integrate(T lb, T ub) const
 {

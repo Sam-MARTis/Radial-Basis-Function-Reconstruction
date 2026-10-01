@@ -32,9 +32,9 @@ int main()
     std::cout << "RenderWindow setup successful." << std::endl;
 
 
-    uint numCells = 1000;
+    uint numCells = 100;
     double dt = 0.001;
-    int solverPerRender = 10;
+    int solverPerRender = 20;
     MeshGenerator meshGen(1, Vec<double, 2>{0.0, DOMAIN_X_MAX}, numCells, MeshType::CARTESIAN);
     // MeshGenerator meshGen2(1, Vec<double, 2>{0.0, DOMAIN_X_MAX}, numCells, MeshType::CARTESIAN);
     Mesh<double, 1> mesh = meshGen.generateMesh();
@@ -77,7 +77,7 @@ int main()
     solver.prescribeBoundaryConditions(1, BOUNDARY_CONSTRAINT::DIRICHLET, rightState);
     std::cout<<"Boundary conditions prescribed."<<std::endl;
 
-    auto kernel = std::make_unique<WendlandFunction<double, 1>>(4 * DOMAIN_X_MAX/static_cast<double>(numCells));
+    auto kernel = std::make_unique<WendlandFunction<double, 1>>(KERNEL_SUPPORT_MULTIPLIER*DEFAULT_NEIGHBOURHOOD_DEPTH * DOMAIN_X_MAX/static_cast<double>(numCells));
     RBFs<double, 1> rbfs(
         numCells,
         numCells,
@@ -87,6 +87,11 @@ int main()
     rbfs.computeLocalCellConnectivityMatrix(mesh);
     std::cout<<"RBFs initialized."<<std::endl;
 
+    std::string name1 = "Euler Equations 1D ";
+    std::string name2 = "RBF - Second Order";
+    std::string name3 = "RBF - Direct";
+    std::string name4 = "RBF - Second Order and Direct Blend";
+    float simTime = 0;
     while(window.isOpen()){
         window.clear(sf::Color::Black);
          while (auto event = window.pollEvent()){
@@ -97,19 +102,24 @@ int main()
             }
         }
         ImGui::SFML::Update(window, clock.restart());
-        ImGui::Begin("Euler Equations");
+        ImGui::Begin((name1 + name4).c_str());
         ImGui::SliderInt("Solver per render", &solverPerRender, 1, 1000);
         // ImGui::SliderFloat("Tolerance exponent", &toleranceRBFExponent, -12.0, -1.0);
         // ImGui::Text("Tolerance = %.5e", pow(10, toleranceRBFExponent));
         // ImGui::SliderInt("Max iterations", reinterpret_cast<int*>(&maxIterationsRBF), 1, 10000);
         // ImGui::Text("Iterations = %d", maxIterationsRBF);
-        for (uint iter = 0; iter < solverPerRender; iter++)
+        ImGui::Text("Simulation Time = %.2f", simTime);
+        if (simTime < 3.0)
         {
-            solver.stepRBFBased(rbfs, dt);
-            // solver.stepPiecewise(dt);
+            for (uint iter = 0; iter < solverPerRender; iter++)
+            {
+                solver.stepRBFBased(rbfs, dt);
+                simTime += static_cast<float>(dt);
+                // solver.stepPiecewise(dt);
+            }
         }
 
-        std::cout<<"Solver steps completed."<<std::endl;
+        // std::cout<<"Solver steps completed."<<std::endl;
         // ImPlot::SetNextAxesToFit();
 
         // rbfs.computeRBFCoefficients(mesh.cells.cellAverages);
@@ -118,7 +128,7 @@ int main()
 
         // doStep();
 
-        if (ImPlot::BeginPlot("Linear advection"))
+        if (ImPlot::BeginPlot("Euler Equation", ImVec2(-1, 500)))
         {
             std::vector<double> plotX;
             std::vector<double> plotY;

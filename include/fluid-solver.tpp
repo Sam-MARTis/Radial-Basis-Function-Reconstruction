@@ -1,6 +1,8 @@
 #pragma once
 #include <algorithm>
 #include <iostream>
+
+#include "constants.hpp"
 #pragma <omp.h>
 // #include <SFML/Window/Keyboard.hpp>
 
@@ -273,7 +275,7 @@ void Solver<T, N>::updateNeighbourhoodRBFCoeffsAndExtremums()
     for (Index cellId = 0; cellId<mesh.numCells; cellId++)
     {
         Neighbourhood<T, N>& neighbourhood = mesh.cells.neighbourhoods[cellId];
-        const std::vector<Index>& neighbourCellIndices = neighbourhood.neighbourCellIndices;
+        const std::vector<Index>& neighbourCellGlobalIndices = neighbourhood.neighbourCellIndices;
         const uint numNeighbours = neighbourhood.numNeighbours;
         std::vector<Vec<T, N+2>> localNeighbourAverages(numNeighbours);
         Vec<T, N+2>& minU = neighbourhood.extremeValues.first;
@@ -284,7 +286,7 @@ void Solver<T, N>::updateNeighbourhoodRBFCoeffsAndExtremums()
         }
         for (uint neighbourCellLocalIdx=0; neighbourCellLocalIdx<numNeighbours; neighbourCellLocalIdx++)
         {
-            const Index neighbourCellGlobalIdx = neighbourCellIndices[neighbourCellLocalIdx];
+            const Index neighbourCellGlobalIdx = neighbourCellGlobalIndices[neighbourCellLocalIdx];
             const Vec<T,N+2>& UNeighbour = mesh.cells.cellAverages[neighbourCellGlobalIdx];
             localNeighbourAverages[neighbourCellLocalIdx] = mesh.cells.cellAverages[neighbourCellGlobalIdx];
             for (uint fieldIdx=0; fieldIdx<N+2; fieldIdx++)
@@ -304,8 +306,6 @@ void Solver<T, N>::updateNeighbourhoodRBFCoeffsAndExtremums()
             }
             neighbourhood.rbfCoefficients[fieldVarIdx] = MatrixSolver<T>::matrixStdVectorMultiply(neighbourhood.ALocalInv, coeffs);
         }
-        // mesh.cells.neighbourhoods[cellId].rbfCoefficients = rbfCoefficients;
-        // mesh.cells.neighbourhoods[cellId].rbfCoefficients = rbfCoefficients;
     }
 }
 /*
@@ -382,10 +382,18 @@ void Solver<T, N>::reconstructSolutionAtEdgesViaRBFs(const RBFs<T, N>& rbfs)
         {
             EdgeProperty<T, N>& edgeProperty = mesh.edges.edgeProperty[edgeIdx];
             const Vec<T, N>& edgeEvaluationPoint = mesh.edges.edgeEvaluationPoints[edgeIdx];
+            const Vec<T, N> dr = edgeEvaluationPoint - cellCenter;
             Vec<T, N+2> Ui(0);
             for (Index fieldIdx = 0; fieldIdx < N+2; fieldIdx++)
             {
-                Ui[fieldIdx] = rbfs.valueLocal(edgeEvaluationPoint, neighbourhood.neighbourCellIndices, neighbourhood.rbfCoefficients[fieldIdx]);
+                if constexpr (USE_RBF_DIRECTLY_FOR_FLUXES==0) Ui[fieldIdx] = rbfs.valueLocal(edgeEvaluationPoint, neighbourhood.neighbourCellIndices, neighbourhood.rbfCoefficients[fieldIdx]);
+                if constexpr (USE_RBF_DIRECTLY_FOR_FLUXES==1) Ui[fieldIdx] = Uj[fieldIdx] + Vec<T, N>::dot(rbfs.gradientLocal(cellCenter, neighbourhood.neighbourCellIndices, neighbourhood.rbfCoefficients[fieldIdx]), dr);
+                if constexpr (USE_RBF_DIRECTLY_FOR_FLUXES==2)
+                {
+                    const auto Ui1 = Uj[fieldIdx] + Vec<T, N>::dot(rbfs.gradientLocal(cellCenter, neighbourhood.neighbourCellIndices, neighbourhood.rbfCoefficients[fieldIdx]), dr);
+                    const auto Ui2 = rbfs.valueLocal(edgeEvaluationPoint, neighbourhood.neighbourCellIndices, neighbourhood.rbfCoefficients[fieldIdx]);
+                    Ui[fieldIdx] = (1.0 - RBF_SECOND_ORDER_BLEND) * Ui2 + RBF_SECOND_ORDER_BLEND * Ui1;
+                }
             }
             const Vec<T, N+2> dU = Ui - Uj;
             const T epsilonSq = LIMITER_K * LIMITER_K * edgeProperty.measure * edgeProperty.measure;

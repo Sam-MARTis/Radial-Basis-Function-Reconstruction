@@ -40,23 +40,23 @@ class Solver
 
         {
             updateNeighbourhoodRBFCoeffsAndExtremums();
-            std::cout<< "Neighbourhood RBF coefficients and extremums updated."<<std::endl;
+            // std::cout<< "Neighbourhood RBF coefficients and extremums updated."<<std::endl;
         }
         {
             reconstructSolutionAtEdgesViaRBFs(rbfs);
-            std::cout<< "Solution reconstructed at edges via RBFs."<<std::endl;
+            // std::cout<< "Solution reconstructed at edges via RBFs."<<std::endl;
         }
         {
             applyBoundaryConditions();
-            std::cout<< "Boundary conditions applied."<<std::endl;
+            // std::cout<< "Boundary conditions applied."<<std::endl;
         }
         {
             calculateFluxes();
-            std::cout<< "Fluxes calculated."<<std::endl;
+            // std::cout<< "Fluxes calculated."<<std::endl;
         }
         {
             updateCellAverages(dt);
-            std::cout<< "Cell averages updated."<<std::endl;
+            // std::cout<< "Cell averages updated."<<std::endl;
         }
     }
     void stepPiecewise(T dt)

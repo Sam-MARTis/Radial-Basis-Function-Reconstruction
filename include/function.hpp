@@ -14,6 +14,7 @@ public:
     virtual T value(const Vec<T, N>& p) const = 0;
     virtual T influenceRegion() const = 0;
     virtual T integrate(T lb, T ub) const = 0;
+    virtual Vec<T, N> gradient(const Vec<T, N>& p) const = 0;
 };
 
 template<typename T, uint N>
@@ -36,6 +37,20 @@ public:
             result *= term;
         }
         return result;  
+    }
+    Vec<T, N> gradient(const Vec<T, N>& p) const override
+    {
+        Vec<T, N> grad(0);
+        for(uint i = 0; i < N; i++)
+        {
+            T term = 0;
+            for(uint j = 1; j < coeffs[i].size(); j++)
+            {
+                term += j * coeffs[i][j] * std::pow(p[i], j - 1);
+            }
+            grad[i] = term;
+        }
+        return grad;
     }
     T influenceRegion() const override
     {
@@ -64,6 +79,17 @@ public:
         }
         return mag*std::exp(-sum / (2 * sigma * sigma));
     }
+    Vec<T, N> gradient(const Vec<T, N>& p) const override
+    {
+        Vec<T, N> grad(0);
+        T val = value(p);
+        for (uint i = 0; i < N; i++)
+        {
+            grad[i] = -val * (p[i] - center[i]) / (sigma * sigma);
+        }
+        return grad;
+    }
+
     T influenceRegion() const override
     {
         return std::numeric_limits<T>::infinity();
@@ -94,6 +120,16 @@ public:
     {
         assert(std::abs(invInfluenceRadius - 1.0/influenceRadius) < EPSILON1);
         return influenceRadius;
+    }
+    Vec<T, N> gradient(const Vec<T, N>& p) const override
+    {
+        const T drNorm = std::max(p.norm(), EPSILON1);
+
+        const T r = drNorm * invInfluenceRadius;
+        if (r > 1.0) return Vec<T, N>(0);
+        const T a = 1-r;
+        const T factor = invInfluenceRadius * (-20*a*a*a + 20*a*a*a*a);
+        return factor * p/drNorm;
     }
     T integrate(T lb, T ub) const override
     {

@@ -7,15 +7,15 @@ using Index = uint;
 using EigenMatrix = Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
 
 
-constexpr double DEFAULT_SCREEN_WIDTH = 800;
+constexpr double DEFAULT_SCREEN_WIDTH = 1600;
 constexpr double DEFAULT_SCREEN_HEIGHT = 800;
 
 
 constexpr double EPSILON1 = 1e-12;
 constexpr double EPSILON2 = 1e-8;
 constexpr double EPSILON3 = 1e-4;
-constexpr double LIMITER_K = 0.1;
-constexpr double EIGENVALUE_SMOOTHENING_DELTA = 0.15;
+constexpr double LIMITER_K = 0.0001;
+constexpr double EIGENVALUE_SMOOTHENING_DELTA = 0.20;
 constexpr double SMOOTH_EIGENVALUE_MAGNITUDE(const double lambda)
 {
     const double lambdaMagnitude = std::abs(lambda);
@@ -25,11 +25,12 @@ constexpr double SMOOTH_EIGENVALUE_MAGNITUDE(const double lambda)
 
 
 constexpr double DOMAIN_X_MAX = 10.0;
-constexpr uint DEFAULT_NEIGHBOURHOOD_DEPTH = 4;
+constexpr uint DEFAULT_NEIGHBOURHOOD_DEPTH = 5;
+constexpr double KERNEL_SUPPORT_MULTIPLIER = 0.9;
 
 
-constexpr double RBF_FIRST_ORDER_BLEND = 0.15;
+constexpr double RBF_FIRST_ORDER_BLEND = 0.05;
 
-
-
+constexpr uint USE_RBF_DIRECTLY_FOR_FLUXES = 1;
+constexpr double RBF_SECOND_ORDER_BLEND = 0.2;
 constexpr double CV = 1.0;
