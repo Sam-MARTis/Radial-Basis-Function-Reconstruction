@@ -49,7 +49,7 @@ constexpr uint LIMITER_NEIGHBOURHOOD_DEPTH = (LIMITER == LIMITER_KIND::VAN_LEER)
 constexpr double KERNEL_SUPPORT_MULTIPLIER = 1.9;
 
 
-constexpr double RBF_FIRST_ORDER_BLEND = 0.00;
+constexpr double RBF_FIRST_ORDER_BLEND = 1.00;
 
 constexpr uint USE_RBF_DIRECTLY_FOR_FLUXES = 2;
 constexpr double RBF_SECOND_ORDER_BLEND = 1.0;

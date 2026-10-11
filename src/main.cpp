@@ -11,7 +11,7 @@
 #include "RBF.hpp"
 #include "validator.hpp"
 
-// Cell state -> primitive {rho, u, p} for plotting.
+// Conserved cell state -> primitive {rho, u, p} for plotting.
 static Vec<double, 3> primitiveOf(const Vec<double, 3>& U)
 {
     constexpr double gamma = 1.4;
@@ -72,8 +72,9 @@ int main()
     const double EL = EulerEquations<double, 1>::getEFromPressureRhoVMagSq(pL, rhoL, uL*uL);
     const double ER = EulerEquations<double, 1>::getEFromPressureRhoVMagSq(pR, rhoR, uR*uR);
 
-    Vec<double, 1+2> leftState{1.0, 0.0, 1.0};
-    Vec<double, 1+2> rightState{0.125, 0.0, 0.1};
+    // Conserved states {rho, rho*u, E}, consistent with EulerEquations / RoeFlux.
+    Vec<double, 1+2> leftState{rhoL, rhoL*uL, EL};
+    Vec<double, 1+2> rightState{rhoR, rhoR*uR, ER};
 
     Constraint<double, 1>::DirichletCondition(mesh, superDomain, rightState);
     Constraint<double, 1>::DirichletCondition(mesh, leftHalfDomain, leftState);
@@ -98,13 +99,16 @@ int main()
     std::cout<<"RBFs initialized."<<std::endl;
 
     const double interfacePosition = 0.5 * DOMAIN_X_MAX;
-    riemann::ExactRiemannSolver<double> exactSolution(leftState, rightState, interfacePosition);
+    riemann::ExactRiemannSolver<double> exactSolution(
+        riemann::asPrimitive<double, 1>(leftState, riemann::VariableFormulation::CONSERVATIVE),
+        riemann::asPrimitive<double, 1>(rightState, riemann::VariableFormulation::CONSERVATIVE),
+        interfacePosition);
     std::cout << "Exact Riemann solution: p* = " << exactSolution.starPressure()
               << ", u* = " << exactSolution.starVelocity()
               << ", shock speed = " << exactSolution.tailSpeed();
     if (!exactSolution.converged()) std::cerr << " (NOT CONVERGED)";
     std::cout << std::endl;
-    const riemann::SolutionValidator<double> validator(exactSolution, riemann::VariableFormulation::PRIMITIVE);
+    const riemann::SolutionValidator<double> validator(exactSolution, riemann::VariableFormulation::CONSERVATIVE);
 
     std::string name1 = "Euler Equations 1D ";
     std::string name2 = "RBF - Second Order";

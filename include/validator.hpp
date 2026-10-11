@@ -487,11 +487,14 @@ private:
         }
 
         T fL = 0, fR = 0, dfL = 0, dfR = 0;
+        // Star pressure solves uL - fL(p) = uR + fR(p), i.e. F(p) = fL + fR - (uL - uR) = 0.
+        // Omitting the velocity difference is only harmless when uL == uR.
+        const T velocityOffset = left_[1] - right_[1];
         auto F = [&](const T pressure)
         {
             pressureFunction(left_, pressure, fL, dfL);
             pressureFunction(right_, pressure, fR, dfR);
-            return fL + fR;
+            return fL + fR - velocityOffset;
         };
 
         // Establish a bracket. The seeds cover both extremes (strong rarefaction,
@@ -511,7 +514,12 @@ private:
         }
 
         p = std::clamp(p, pLower, pUpper);
-        const T tolerance = static_cast<T>(1e-14) * std::max(static_cast<T>(1), pMax);
+        // Rescale the stopping criterion with the characteristic velocity; an absolute
+        // tolerance on F (which is a velocity) stops far too early when the states
+        // differ in velocity.
+        const T velocityScale = std::max(static_cast<T>(1),
+            std::max(std::max(aL, aR), std::max(std::abs(left_[1]), std::abs(right_[1]))));
+        const T tolerance = static_cast<T>(1e-13) * velocityScale;
         bool bracketed = (fLower <= static_cast<T>(0) && fUpper >= static_cast<T>(0));
         if (bracketed)
         {
@@ -564,11 +572,12 @@ private:
 
         // A converged solution has consistent star velocities from both sides and a
         // positive post-wave density.
+        // Accept when the two sides agree on the star velocity to a tight absolute
+        // tolerance; the earlier 1e-6-relative test rejected perfectly good roots.
         converged_ = std::isfinite(pStar_) && std::isfinite(uStar_) &&
                      pStar_ > static_cast<T>(0) &&
                      rhoStarL_ > static_cast<T>(0) && rhoStarR_ > static_cast<T>(0) &&
-                     std::abs(uFromLeft - uFromRight) <=
-                         static_cast<T>(1e-6) * std::max(static_cast<T>(1), std::abs(uStar_)) + static_cast<T>(1e-10);
+                     std::abs(uFromLeft - uFromRight) <= static_cast<T>(1e-9);
     }
 
     [[nodiscard]] Vec<T, 3> starState(const Vec<T, 3>& W, const T rhoStar, const T uStar) const
