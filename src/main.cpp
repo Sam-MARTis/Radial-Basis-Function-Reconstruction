@@ -9,6 +9,16 @@
 #include "fluid-solver.hpp"
 #include "vec.hpp"
 #include "RBF.hpp"
+#include "validator.hpp"
+
+// Cell state -> primitive {rho, u, p} for plotting.
+static Vec<double, 3> primitiveOf(const Vec<double, 3>& U)
+{
+    constexpr double gamma = 1.4;
+    const double rho = std::max(U[0], EPSILON2);
+    const double u = U[1] / rho;
+    return Vec<double, 3>{rho, u, (gamma - 1.0) * (U[2] - 0.5 * rho * u * u)};
+}
 
 
 int main()
@@ -87,11 +97,32 @@ int main()
     rbfs.computeLocalCellConnectivityMatrix(mesh);
     std::cout<<"RBFs initialized."<<std::endl;
 
+    const double interfacePosition = 0.5 * DOMAIN_X_MAX;
+    riemann::ExactRiemannSolver<double> exactSolution(leftState, rightState, interfacePosition);
+    std::cout << "Exact Riemann solution: p* = " << exactSolution.starPressure()
+              << ", u* = " << exactSolution.starVelocity()
+              << ", shock speed = " << exactSolution.tailSpeed();
+    if (!exactSolution.converged()) std::cerr << " (NOT CONVERGED)";
+    std::cout << std::endl;
+    const riemann::SolutionValidator<double> validator(exactSolution, riemann::VariableFormulation::PRIMITIVE);
+
     std::string name1 = "Euler Equations 1D ";
     std::string name2 = "RBF - Second Order";
     std::string name3 = "RBF - Direct";
     std::string name4 = "RBF - Second Order and Direct Blend";
     float simTime = 0;
+
+    bool showExactSolution = true;
+    bool showStatistics = true;
+
+    // Drafted while only rho is plotted; other fields can be added here later.
+    const riemann::FieldSpec densityField{riemann::FieldVariable::DENSITY, "rho", "kg/m^3", true};
+    const std::vector<riemann::FieldSpec> validationFields{densityField};
+
+    riemann::VolumetricData<double> validation;
+    double lastValidatedTime = -1.0;
+    bool haveStatistics = false;
+
     while(window.isOpen()){
         window.clear(sf::Color::Black);
          while (auto event = window.pollEvent()){
@@ -119,6 +150,64 @@ int main()
             }
         }
 
+        // ---- Exact-solution comparison controls ------------------------------
+        ImGui::SeparatorText("Exact solution");
+        ImGui::Checkbox("Show exact solution", &showExactSolution);
+        ImGui::SameLine();
+        ImGui::Checkbox("Show statistics", &showStatistics);
+
+        // The validation walks every cell, so refresh it only when the solution changed.
+        if (showExactSolution && (!haveStatistics ||
+                                  std::abs(static_cast<double>(simTime) - lastValidatedTime) > 1e-9))
+        {
+            validation = validator.validate(mesh, static_cast<double>(simTime), validationFields);
+            lastValidatedTime = static_cast<double>(simTime);
+            haveStatistics = true;
+        }
+
+        if (showStatistics && haveStatistics)
+        {
+            const riemann::ConservationStats<double>& cons = validation.conservation;
+            ImGui::SeparatorText("Error statistics (vs exact solution)");
+            ImGui::Text("exact: p* = %.6g   u* = %.6g   shock speed = %.6g",
+                        validation.exactInfo.pStar, validation.exactInfo.uStar, validation.exactInfo.shockSpeed);
+            ImGui::Text("conservation drift:  mass %.3e (rel %.2e)   momentum %.3e (rel %.2e)   energy %.3e (rel %.2e)",
+                        cons.massError, cons.massErrorRel,
+                        cons.momentumError, cons.momentumErrorRel,
+                        cons.energyError, cons.energyErrorRel);
+
+            const ImGuiTableFlags tableFlags = ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg |
+                                               ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_ScrollY;
+            if (ImGui::BeginTable("validation_stats", 6, tableFlags, ImVec2(0.0f, 175.0f)))
+            {
+                ImGui::TableSetupScrollFreeze(0, 1);
+                ImGui::TableSetupColumn("field");
+                ImGui::TableSetupColumn("L1");
+                ImGui::TableSetupColumn("L2");
+                ImGui::TableSetupColumn("Linf");
+                ImGui::TableSetupColumn("rel L1");
+                ImGui::TableSetupColumn("integral error");
+                ImGui::TableHeadersRow();
+                for (const riemann::FieldStats<double>& field : validation.fields)
+                {
+                    ImGui::TableNextRow();
+                    ImGui::TableNextColumn();
+                    ImGui::TextUnformatted(field.name.c_str());
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%.4e", field.l1);
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%.4e", field.l2);
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%.4e", field.lInf);
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%.4e", field.relL1);
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%.4e", field.errorIntegral);
+                }
+                ImGui::EndTable();
+            }
+        }
+
         // std::cout<<"Solver steps completed."<<std::endl;
         // ImPlot::SetNextAxesToFit();
 
@@ -132,36 +221,47 @@ int main()
         {
             std::vector<double> plotX;
             std::vector<double> plotY;
-            std::vector<double> plotY2;
-            std::vector<double> plotYRBFs;
             plotX.reserve(mesh.cells.cellCentersPositions.size());
             plotY.reserve(mesh.cells.cellAverages.size());
-            // plotY2.reserve(mesh2.cells.cellAverages.size());
-            plotYRBFs.reserve(mesh.cells.cellAverages.size());
             assert(mesh.cells.cellCentersPositions.size() == mesh.cells.cellAverages.size());
             for (const auto& pos : mesh.cells.cellCentersPositions)
             {
                 plotX.push_back(pos[0]);
             }
-            for (const auto& avg : mesh.cells.cellAverages)
+
+            ImPlotSpec simulatedSpec;
+            simulatedSpec.Marker = ImPlotMarker_Circle;
+            simulatedSpec.MarkerSize = 2.5f;
+            ImPlotSpec exactSpec;
+            exactSpec.LineWeight = 2.0f;
+
+            std::vector<double> exactY;
+            if (showExactSolution) exactY.resize(plotX.size(), 0.0);
+
+            ImPlot::SetupAxes("x", densityField.name);
+
+            plotY.clear();
+            for (const Vec<double, 3>& U : mesh.cells.cellAverages)
             {
-                plotY.push_back(avg[0]);
+                plotY.push_back(riemann::extractField<double, 1>(
+                    densityField.variable, primitiveOf(U), U));
             }
-            // for (const auto& avg : mesh2.cells.cellAverages)
-            // {
-            //     plotY2.push_back(avg[0]);
-            // }
-            ImPlot::SetupAxesLimits(0.0, DOMAIN_X_MAX, 0.0, 1.5);
-            // for (const auto& pos : mesh.cells.cellCentersPositions)
-            // {
-            //     plotYRBFs.push_back(rbfs.value(pos));
-            // }
-            // std::cout<<EnergyLog.data()<<std::endl;
-            ImPlot::SetupAxes("x", "rho");
-            // std::cout<<"RBF plot [0] = "<<plotYRBFs[0]<<", [1] = "<<plotYRBFs[1]<<", [2] = "<<plotYRBFs[2]<<std::endl;
-            ImPlot::PlotLine("rho", plotX.data(), plotY.data(), static_cast<int>(plotY.size()));
-            // ImPlot::PlotLine("u_RBFs", plotX.data(), plotYRBFs.data(), static_cast<int>(plotYRBFs.size()));
-            // ImPlot::PlotLine("u2", plotX.data(), plotY2.data(), static_cast<int>(plotY2.size()));
+            if (showExactSolution)
+            {
+                for (size_t cell = 0; cell < plotX.size(); ++cell)
+                {
+                    exactY[cell] = riemann::extractField<double, 1>(
+                        densityField.variable,
+                        exactSolution.samplePrimitive(plotX[cell], static_cast<double>(simTime)),
+                        exactSolution.sampleConserved(plotX[cell], static_cast<double>(simTime)));
+                }
+            }
+
+            ImPlot::PlotLine("rho simulated", plotX.data(), plotY.data(), static_cast<int>(plotY.size()), simulatedSpec);
+            if (showExactSolution)
+            {
+                ImPlot::PlotLine("rho exact", plotX.data(), exactY.data(), static_cast<int>(exactY.size()), exactSpec);
+            }
             ImPlot::EndPlot();
         }
         ImGui::End();

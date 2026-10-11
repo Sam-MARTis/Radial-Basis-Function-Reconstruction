@@ -26,9 +26,7 @@ enum class LIMITER_KIND : unsigned int
 
 constexpr LIMITER_KIND LIMITER = LIMITER_KIND::VENKATAKRISHNAN;
 
-/*
- * Caps van Leer psi at 1. Diffusivity knob only -- it is NOT a boundedness fix.
- */
+// Caps van Leer psi at 1. Diffusivity knob, NOT a boundedness fix.
 constexpr bool VAN_LEER_MONOTONE = false;
 
 constexpr double EIGENVALUE_SMOOTHENING_DELTA = 0.20;
@@ -42,10 +40,7 @@ constexpr double SMOOTH_EIGENVALUE_MAGNITUDE(const double lambda)
 
 constexpr double DOMAIN_X_MAX = 10.0;
 
-/*
- * Depth of the local RBF fit neighbourhood (edge hops). Also sets the kernel support
- * radius in src/main.cpp.
- */
+// RBF fit neighbourhood depth (edge hops); also sets kernel support in src/main.cpp.
 constexpr uint DEFAULT_NEIGHBOURHOOD_DEPTH = 5;
 
 

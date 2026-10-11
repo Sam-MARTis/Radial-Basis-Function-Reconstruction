@@ -172,10 +172,7 @@ void Solver<T, N>::calculateFluxes()
             }
         }
             // edgeProperty.numericalFlux = RussanovFlux<T, N>::computeNumericalFlux(cellLAverage, cellRAverage, directionVectors);
-        /*
-         * Put the task of computing out vs in on the cell update function.
-         * Remember, normal points from connectingCells.first to connectingCells.second.
-         */
+        // Normal points from connectingCells.first to connectingCells.second.
     }
 
 }
@@ -269,13 +266,7 @@ void Solver<T, N>::updateCellAverages(T dt){
     }
 
 
-/*
- * Two independent loops, one per neighbourhood. They are split because the RBF fit
- * wants a wide stencil (DEFAULT_NEIGHBOURHOOD_DEPTH) while a TVD limiter wants the
- * immediate stencil (LIMITER_NEIGHBOURHOOD_DEPTH, depth 1 for van Leer). Merging them
- * back into one loop over a single neighbourhood is what made the limiter bracket too
- * wide to bite.
- */
+// One loop per neighbourhood: RBF fit stencil and limiter extrema stencil.
 
 template <typename T, uint N>
 void Solver<T, N>::updateNeighbourhoodRBFCoefficients()

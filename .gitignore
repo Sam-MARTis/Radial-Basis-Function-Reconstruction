@@ -120,5 +120,6 @@ CMakeUserPresets.json
 external
 .vscode
 
-# Local agent-facing reference log; deliberately untracked (not shipped source)
+# Local developer/agent reference notes; deliberately untracked (not shipped source)
 repositoryReferenceLogForAgents.md
+developerReference.md

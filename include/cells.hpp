@@ -30,15 +30,7 @@ struct Edges
 template <typename T, uint N>
 struct Neighbourhood
 {
-    /*
-     * Two neighbourhoods per cell, with independent depths:
-     *
-     *  - neighbourCellIndices / ALocalInv / rbfCoefficients size the local RBF fit.
-     *  - extremaNeighbourCellIndices feeds the min/max used by the limiter bounds.
-     *
-     * They are separate because a TVD limiter wants the immediate stencil while the
-     * RBF fit needs a wider support. Both include the cell's own index.
-     */
+    // Two neighbourhoods with independent depths: RBF fit and limiter extrema.
     Index numNeighbours = 0;
     std::vector<Index> neighbourCellIndices;
     std::array<std::vector<T>, N+2> rbfCoefficients;

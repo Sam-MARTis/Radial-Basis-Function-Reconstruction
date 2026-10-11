@@ -46,10 +46,7 @@ class MeshGenerator{
 };
 
 
-/*
- * Breadth-first expansion of the single cell cellId up to `depth` edge hops.
- * depth == 1 returns the adjacent cells only; the seed cell itself is always included
- */
+// BFS expansion of cellId up to `depth` edge hops; seed cell always included.
 template <typename T, uint N>
 std::vector<Index> Mesh<T, N>::collectNeighbourhood(const Mesh<T, N>& mesh, const Index cellId, const uint depth)
 {
@@ -149,14 +146,7 @@ void Mesh<T, N>::fixEdgesConnectivityOrder()
 
             }
 
-            /*
-             * This branch implies the edge is a booundary edge with only one connecting cell.
-             * In the future we might wanna do some aligning but for now that is not necessary.
-             * Fluxes for boundary and stuff will be handled separately in the constraints
-             *
-             * Note from future Sep8 2026, the above was implemented and normals were aligned
-             * source sink relation with normal is followed for boundary edges as well
-             */
+            // Boundary edge (single connecting cell); normals are aligned below.
             continue;
         }
         const Vec<T, N>& sourceCellCenter = cells.cellCentersPositions[sourceCellIndex];

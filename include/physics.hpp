@@ -304,13 +304,7 @@ public:
 template <typename T, uint N>
 class Limiters
 {
-    /*
-     *
-     *   deltaM = Ui - Uj   (jump from the cell average to the extrapolated edge value)
-     *   deltaP             (non-negative room left in the direction of deltaM)
-     *
-     * Returns psi, applied as Ulimited = Uj + psi * deltaM.
-     */
+    // psi multiplies deltaM: Ulimited = Uj + psi * deltaM. See developerReference.md.
 public:
     static T VenkatakrishnanField(const T deltaM, const T deltaP, const T epsilonSq)
     {
@@ -323,12 +317,7 @@ public:
         return (std::abs(den) > EPSILON2) ? (num / den) : static_cast<T>(1);
     }
 
-    /*
-     * Van Leer: psi = phi(r)/r with phi(r) = (r + |r|)/(1 + |r|), r = deltaM/deltaP,
-     * written sign-symmetrically and branch-free. Canonical psi is in [0, 2); the TVD
-     * in particular psi <= 1 does NOT keep the edge value inside [Umin, Umax] here.
-     * This cause the neighbourhood is not just adjacent cells but a larger stencil.
-     */
+    // Van Leer: psi = phi(r)/r, phi(r) = (r + |r|)/(1 + |r|), r = deltaM/deltaP.
     static T VanLeerField(const T deltaM, const T deltaP)
     {
         if (std::abs(deltaM) < EPSILON2)
@@ -360,15 +349,13 @@ public:
         }
     }
 
-    /* Legacy entry point: component-wise Venkatakrishnan. Prefer Apply(). */
+    /* Legacy: component-wise Venkatakrishnan. Prefer Apply(). */
     [[deprecated]] static Vec<T, N> Venkatakrishnan(const Vec<T, N>& Uj, const Vec<T, N>& Ui, const Vec<T, N>& Umin, const Vec<T, N>& Umax, T epsilonSq)
     {
         return Apply(LIMITER_KIND::VENKATAKRISHNAN, Uj, Ui, Umin, Umax, epsilonSq);
     }
 
-    /*
-     * Component-wise dispatch. deltaP below MUST stay non-negative
-     */
+    // Component-wise dispatch; deltaP must stay non-negative.
     static Vec<T, N> Apply(const LIMITER_KIND kind, const Vec<T, N>& Uj, const Vec<T, N>& Ui, const Vec<T, N>& Umin, const Vec<T, N>& Umax, T epsilonSq)
     {
         Vec<T, N> psi(0);
