@@ -31,15 +31,21 @@ template <typename T, uint N>
 struct Neighbourhood
 {
     /*
-     *Ok so, this will be unique for each each
-     *Each cell will have its neighbours indices and their rbf coefficients.
-     *It will have a local A_inv that will be computed at setup.
-     *The rbf coefficients are computed each timestep iteration
+     * Two neighbourhoods per cell, with independent depths:
+     *
+     *  - neighbourCellIndices / ALocalInv / rbfCoefficients size the local RBF fit.
+     *  - extremaNeighbourCellIndices feeds the min/max used by the limiter bounds.
+     *
+     * They are separate because a TVD limiter wants the immediate stencil while the
+     * RBF fit needs a wider support. Both include the cell's own index.
      */
     Index numNeighbours = 0;
     std::vector<Index> neighbourCellIndices;
     std::array<std::vector<T>, N+2> rbfCoefficients;
     Matrix<T> ALocalInv;
+
+    Index numExtremaNeighbours = 0;
+    std::vector<Index> extremaNeighbourCellIndices;
     std::pair<Vec<T, N+2>, Vec<T, N+2>> extremeValues;
 };
 

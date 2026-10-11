@@ -31,7 +31,8 @@ struct Mesh{
     std::vector<std::pair<uint, std::vector<Index>>> boundaryIdentifiers;
     void fixEdgesConnectivityOrder();
     void identifyBoundaryEdgesAndCells(const std::vector<std::pair<uint, std::unique_ptr<Domain<T, N>>>>& boundaryDomains);
-    static void initializeNeighbourhood(Mesh<T, N>& mesh, uint depth);
+    static void initializeNeighbourhood(Mesh<T, N>& mesh, uint rbfDepth, uint extremaDepth);
+    static std::vector<Index> collectNeighbourhood(const Mesh<T, N>& mesh, Index cellId, uint depth);
 };
 
 class MeshGenerator{
@@ -45,46 +46,57 @@ class MeshGenerator{
 };
 
 
+/*
+ * Breadth-first expansion of the single cell cellId up to `depth` edge hops.
+ * depth == 1 returns the adjacent cells only; the seed cell itself is always included
+ */
 template <typename T, uint N>
-void Mesh<T, N>::initializeNeighbourhood(Mesh<T, N>& mesh, const uint depth)
+std::vector<Index> Mesh<T, N>::collectNeighbourhood(const Mesh<T, N>& mesh, const Index cellId, const uint depth)
+{
+    std::set<Index> neighbourhoodSets = {cellId};
+    for (uint currentDepth = 0; currentDepth < depth; currentDepth++)
+    {
+        std::vector<Index> thisDepthNeighbours;
+        for (const Index& neighbourId : neighbourhoodSets)
+        {
+            const std::vector<Index>& cellConnectingEdges = mesh.cells.edgeIndices[neighbourId];
+            for (const Index& edgeId : cellConnectingEdges)
+            {
+                const EdgeProperty<T, N>& edgeProperty = mesh.edges.edgeProperty[edgeId];
+                const Index neighbourCellId = (edgeProperty.connectingCells.first == neighbourId) ? edgeProperty.connectingCells.second : edgeProperty.connectingCells.first;
+                if (neighbourCellId < mesh.numCells)
+                {
+                    thisDepthNeighbours.push_back(neighbourCellId);
+                }
+            }
+        }
+        for (const Index& neighbourId : thisDepthNeighbours)
+        {
+            neighbourhoodSets.insert(neighbourId);
+        }
+    }
+    return std::vector<Index>(neighbourhoodSets.begin(), neighbourhoodSets.end());
+}
+
+
+template <typename T, uint N>
+void Mesh<T, N>::initializeNeighbourhood(Mesh<T, N>& mesh, const uint rbfDepth, const uint extremaDepth)
 {
     assert(mesh.cells.neighbourhoods.size() == 0);
     for (Index cellId = 0; cellId < mesh.numCells; cellId++)
     {
         Neighbourhood<T, N> neighbourhood;
-        neighbourhood.numNeighbours = 0;
-        // neighbourhood.neighbourCellIndices.clear();
-        // neighbourhood.rbfCoefficients.clear();
-        // neighbourhood.ALocalInv = Matrix<T>(depth, depth);
-        std::set<Index> neighbourhoodSets = {cellId};
-        for (uint currentDepth = 0; currentDepth < depth; currentDepth++)
-        {
-            std::vector<Index> thisDepthNeighbours;
-            for (const Index& neighbourId : neighbourhoodSets)
-            {
-                std::vector<Index> cellConnectingEdges = mesh.cells.edgeIndices[neighbourId];
-                for (const Index& edgeId : cellConnectingEdges)
-                {
-                    EdgeProperty<T, N>& edgeProperty = mesh.edges.edgeProperty[edgeId];
-                    Index neighbourCellId = (edgeProperty.connectingCells.first == neighbourId) ? edgeProperty.connectingCells.second : edgeProperty.connectingCells.first;
-                    if (neighbourCellId < mesh.numCells)
-                    {
-                        thisDepthNeighbours.push_back(neighbourCellId);
-                        // thisDepthNeighbours.insert(neighbourCellId);
-                    }
-                }
-            }
-            for (const Index& neighbourId : thisDepthNeighbours)
-            {
-                neighbourhoodSets.insert(neighbourId);
-            }
-        }
-        // neighbourhoodSets.erase(cellId);
-        for (const Index& neighbourId : neighbourhoodSets)
-        {
-            neighbourhood.neighbourCellIndices.push_back(neighbourId);
-        }
+
+        neighbourhood.neighbourCellIndices = collectNeighbourhood(mesh, cellId, rbfDepth);
+        neighbourhood.extremaNeighbourCellIndices = collectNeighbourhood(mesh, cellId, extremaDepth);
+
         neighbourhood.numNeighbours = neighbourhood.neighbourCellIndices.size();
+        neighbourhood.numExtremaNeighbours = neighbourhood.extremaNeighbourCellIndices.size();
+
+
+        assert(neighbourhood.numNeighbours >= N + 2);
+        assert(neighbourhood.numExtremaNeighbours >= 1);
+
         neighbourhood.rbfCoefficients = std::array<std::vector<T>, N+2>();
         neighbourhood.ALocalInv.resize(neighbourhood.numNeighbours, neighbourhood.numNeighbours);
         mesh.cells.neighbourhoods.push_back(neighbourhood);

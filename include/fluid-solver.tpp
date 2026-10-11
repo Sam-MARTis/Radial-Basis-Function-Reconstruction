@@ -259,7 +259,8 @@ void Solver<T, N>::updateCellAverages(T dt){
         {
             if (!std::isfinite(mesh.cells.cellAverages[cellIdx][fieldIdx]))
             {
-                mesh.cells.cellAverages[cellIdx][fieldIdx] = 0;
+                // mesh.cells.cellAverages[cellIdx][fieldIdx] = 0;
+                assert(false && "Non-finite value encountered in cell averages.");
             }
         }
         mesh.cells.cellAverages[cellIdx][0] = std::max(mesh.cells.cellAverages[cellIdx][0], EPSILON2);
@@ -268,8 +269,16 @@ void Solver<T, N>::updateCellAverages(T dt){
     }
 
 
+/*
+ * Two independent loops, one per neighbourhood. They are split because the RBF fit
+ * wants a wide stencil (DEFAULT_NEIGHBOURHOOD_DEPTH) while a TVD limiter wants the
+ * immediate stencil (LIMITER_NEIGHBOURHOOD_DEPTH, depth 1 for van Leer). Merging them
+ * back into one loop over a single neighbourhood is what made the limiter bracket too
+ * wide to bite.
+ */
+
 template <typename T, uint N>
-void Solver<T, N>::updateNeighbourhoodRBFCoeffsAndExtremums()
+void Solver<T, N>::updateNeighbourhoodRBFCoefficients()
 {
 #pragma omp parallel for
     for (Index cellId = 0; cellId<mesh.numCells; cellId++)
@@ -278,22 +287,10 @@ void Solver<T, N>::updateNeighbourhoodRBFCoeffsAndExtremums()
         const std::vector<Index>& neighbourCellGlobalIndices = neighbourhood.neighbourCellIndices;
         const uint numNeighbours = neighbourhood.numNeighbours;
         std::vector<Vec<T, N+2>> localNeighbourAverages(numNeighbours);
-        Vec<T, N+2>& minU = neighbourhood.extremeValues.first;
-        Vec<T, N+2>& maxU = neighbourhood.extremeValues.second;
-        for (uint fieldIdx = 0; fieldIdx < N+2; fieldIdx++) {
-            minU[fieldIdx] = std::numeric_limits<T>::max();
-            maxU[fieldIdx] = std::numeric_limits<T>::lowest();
-        }
         for (uint neighbourCellLocalIdx=0; neighbourCellLocalIdx<numNeighbours; neighbourCellLocalIdx++)
         {
             const Index neighbourCellGlobalIdx = neighbourCellGlobalIndices[neighbourCellLocalIdx];
-            const Vec<T,N+2>& UNeighbour = mesh.cells.cellAverages[neighbourCellGlobalIdx];
             localNeighbourAverages[neighbourCellLocalIdx] = mesh.cells.cellAverages[neighbourCellGlobalIdx];
-            for (uint fieldIdx=0; fieldIdx<N+2; fieldIdx++)
-            {
-                if (UNeighbour[fieldIdx] < minU[fieldIdx]) minU[fieldIdx] = UNeighbour[fieldIdx];
-                if (UNeighbour[fieldIdx] > maxU[fieldIdx]) maxU[fieldIdx] = UNeighbour[fieldIdx];
-            }
         }
 
         // std::array<std::vector<T>, N+2> rbfCoefficients;
@@ -305,6 +302,33 @@ void Solver<T, N>::updateNeighbourhoodRBFCoeffsAndExtremums()
                 coeffs[neighbourCellLocalIdx] = localNeighbourAverages[neighbourCellLocalIdx][fieldVarIdx];
             }
             neighbourhood.rbfCoefficients[fieldVarIdx] = MatrixSolver<T>::matrixStdVectorMultiply(neighbourhood.ALocalInv, coeffs);
+        }
+    }
+}
+
+template <typename T, uint N>
+void Solver<T, N>::updateNeighbourhoodExtremums()
+{
+#pragma omp parallel for
+    for (Index cellId = 0; cellId<mesh.numCells; cellId++)
+    {
+        Neighbourhood<T, N>& neighbourhood = mesh.cells.neighbourhoods[cellId];
+        const std::vector<Index>& extremaNeighbourGlobalIndices = neighbourhood.extremaNeighbourCellIndices;
+        const uint numExtremaNeighbours = neighbourhood.numExtremaNeighbours;
+        Vec<T, N+2>& minU = neighbourhood.extremeValues.first;
+        Vec<T, N+2>& maxU = neighbourhood.extremeValues.second;
+        for (uint fieldIdx = 0; fieldIdx < N+2; fieldIdx++) {
+            minU[fieldIdx] = std::numeric_limits<T>::max();
+            maxU[fieldIdx] = std::numeric_limits<T>::lowest();
+        }
+        for (uint neighbourCellLocalIdx=0; neighbourCellLocalIdx<numExtremaNeighbours; neighbourCellLocalIdx++)
+        {
+            const Vec<T,N+2>& UNeighbour = mesh.cells.cellAverages[extremaNeighbourGlobalIndices[neighbourCellLocalIdx]];
+            for (uint fieldIdx=0; fieldIdx<N+2; fieldIdx++)
+            {
+                if (UNeighbour[fieldIdx] < minU[fieldIdx]) minU[fieldIdx] = UNeighbour[fieldIdx];
+                if (UNeighbour[fieldIdx] > maxU[fieldIdx]) maxU[fieldIdx] = UNeighbour[fieldIdx];
+            }
         }
     }
 }

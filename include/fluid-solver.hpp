@@ -22,7 +22,8 @@ class Solver
     void reconstructSolutionAtEdgesViaRBFs(const RBFs<T, N>& rbfs);
     void reconstructSolutionAtEdgesPiecewise();
     public:
-    void updateNeighbourhoodRBFCoeffsAndExtremums();
+    void updateNeighbourhoodRBFCoefficients();
+    void updateNeighbourhoodExtremums();
     void prescribeBoundaryConditions(uint boundaryIndex, BOUNDARY_CONSTRAINT boundaryType, Vec<T, N+2> boundaryValue);
     void prescribeBoundaryConditions(uint boundaryIndex, BOUNDARY_CONSTRAINT boundaryType);
     // void prescribeBoundaryConditions(uint boundaryIndex, BOUNDARY_CONSTRAINT boundaryType);
@@ -39,7 +40,8 @@ class Solver
     {
 
         {
-            updateNeighbourhoodRBFCoeffsAndExtremums();
+            updateNeighbourhoodRBFCoefficients();
+            updateNeighbourhoodExtremums();
             // std::cout<< "Neighbourhood RBF coefficients and extremums updated."<<std::endl;
         }
         {

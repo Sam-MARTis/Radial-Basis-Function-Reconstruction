@@ -51,6 +51,6 @@ Mesh<double, 1> MeshGenerator::generateMesh()
     mesh.numEdges = mesh.edges.edgeProperty.size();
     mesh.boundingBox.first = Vec<double, 1>{domainBounds[0]};
     mesh.boundingBox.second = Vec<double, 1>{domainBounds[1]};
-    Mesh<double, 1>::initializeNeighbourhood(mesh, DEFAULT_NEIGHBOURHOOD_DEPTH);
+    Mesh<double, 1>::initializeNeighbourhood(mesh, DEFAULT_NEIGHBOURHOOD_DEPTH, LIMITER_NEIGHBOURHOOD_DEPTH);
     return mesh;
 }
