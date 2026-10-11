@@ -304,29 +304,86 @@ public:
 template <typename T, uint N>
 class Limiters
 {
+    /*
+     *
+     *   deltaM = Ui - Uj   (jump from the cell average to the extrapolated edge value)
+     *   deltaP             (non-negative room left in the direction of deltaM)
+     *
+     * Returns psi, applied as Ulimited = Uj + psi * deltaM.
+     */
 public:
-    static Vec<T, N> Venkatakrishnan(const Vec<T, N>& Uj, const Vec<T, N>& Ui, const Vec<T, N>& Umin, const Vec<T, N>& Umax, T epsilonSq)
+    static T VenkatakrishnanField(const T deltaM, const T deltaP, const T epsilonSq)
+    {
+        if (std::abs(deltaM) < EPSILON2)
+        {
+            return static_cast<T>(1);
+        }
+        const T num = (deltaP * deltaP + epsilonSq) * deltaM + 2.0 * deltaM * deltaM * deltaP;
+        const T den = deltaM * (deltaP * deltaP + 2.0 * deltaM * deltaM + deltaM * deltaP + epsilonSq);
+        return (std::abs(den) > EPSILON2) ? (num / den) : static_cast<T>(1);
+    }
+
+    /*
+     * Van Leer: psi = phi(r)/r with phi(r) = (r + |r|)/(1 + |r|), r = deltaM/deltaP,
+     * written sign-symmetrically and branch-free. Canonical psi is in [0, 2); the TVD
+     * in particular psi <= 1 does NOT keep the edge value inside [Umin, Umax] here.
+     * This cause the neighbourhood is not just adjacent cells but a larger stencil.
+     */
+    static T VanLeerField(const T deltaM, const T deltaP)
+    {
+        if (std::abs(deltaM) < EPSILON2)
+        {
+            return static_cast<T>(1);
+        }
+        const T den = std::abs(deltaP) + std::abs(deltaM);
+        if (den < EPSILON2)
+        {
+            return static_cast<T>(0);
+        }
+        // sign(deltaM) * deltaP: +|deltaP| for a monotone stencil, negative at extrema.
+        const T alignedDeltaP = (deltaM > 0) ? deltaP : -deltaP;
+        const T num = static_cast<T>(2) * std::max(alignedDeltaP, static_cast<T>(0));
+        const T psi = num / den;
+        constexpr T psiMax = VAN_LEER_MONOTONE ? static_cast<T>(1) : static_cast<T>(2);
+        // Exact range is [0, 2)
+        return std::clamp(psi, static_cast<T>(0), psiMax);
+    }
+
+    static T ApplyField(const LIMITER_KIND kind, const T deltaM, const T deltaP, const T epsilonSq)
+    {
+        switch (kind)
+        {
+            case LIMITER_KIND::NO_LIMITER:      return static_cast<T>(1);
+            case LIMITER_KIND::VAN_LEER:        return VanLeerField(deltaM, deltaP);
+            case LIMITER_KIND::VENKATAKRISHNAN: return VenkatakrishnanField(deltaM, deltaP, epsilonSq);
+            default:                            return static_cast<T>(1);
+        }
+    }
+
+    /* Legacy entry point: component-wise Venkatakrishnan. Prefer Apply(). */
+    [[deprecated]] static Vec<T, N> Venkatakrishnan(const Vec<T, N>& Uj, const Vec<T, N>& Ui, const Vec<T, N>& Umin, const Vec<T, N>& Umax, T epsilonSq)
+    {
+        return Apply(LIMITER_KIND::VENKATAKRISHNAN, Uj, Ui, Umin, Umax, epsilonSq);
+    }
+
+    /*
+     * Component-wise dispatch. deltaP below MUST stay non-negative
+     */
+    static Vec<T, N> Apply(const LIMITER_KIND kind, const Vec<T, N>& Uj, const Vec<T, N>& Ui, const Vec<T, N>& Umin, const Vec<T, N>& Umax, T epsilonSq)
     {
         Vec<T, N> psi(0);
         for (Index fieldIdx = 0; fieldIdx < N; fieldIdx++)
         {
-            const T delta = Ui[fieldIdx] - Uj[fieldIdx];
-            if (std::abs(delta) < EPSILON2)
-            {
-                psi[fieldIdx] = 1;
-                continue;
-            }
-
-            const T deltaP = (delta > 0) ? (Umax[fieldIdx] - Uj[fieldIdx]) : (Umin[fieldIdx] - Uj[fieldIdx]);
-            const T deltaM = delta;
-            const T num = (deltaP * deltaP + epsilonSq) * deltaM + 2.0 * deltaM * deltaM * deltaP;
-            const T den = deltaM * (deltaP * deltaP + 2.0 * deltaM * deltaM + deltaM * deltaP + epsilonSq);
-            psi[fieldIdx] = (std::abs(den) > EPSILON2) ? (num / den) : 1.0;
+            const T deltaM = Ui[fieldIdx] - Uj[fieldIdx];
+            const T deltaP = (deltaM > 0) ? (Umax[fieldIdx] - Uj[fieldIdx]) : (Uj[fieldIdx] - Umin[fieldIdx]);
+            psi[fieldIdx] = ApplyField(kind, deltaM, deltaP, epsilonSq);
         }
         return psi;
     }
 
 };
+
+/// END Limiters
 
 enum class ReportedDerivedQuantitiesIndices: uint
 {

@@ -102,7 +102,7 @@ int main()
             }
         }
         ImGui::SFML::Update(window, clock.restart());
-        ImGui::Begin((name1 + name4).c_str());
+        ImGui::Begin((name1 + name2).c_str());
         ImGui::SliderInt("Solver per render", &solverPerRender, 1, 1000);
         // ImGui::SliderFloat("Tolerance exponent", &toleranceRBFExponent, -12.0, -1.0);
         // ImGui::Text("Tolerance = %.5e", pow(10, toleranceRBFExponent));

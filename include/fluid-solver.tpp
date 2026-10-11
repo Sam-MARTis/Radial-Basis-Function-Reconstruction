@@ -330,7 +330,7 @@ void Solver<T, N>::reconstructSolutionAtEdges()
             const Vec<T, N+2> dU = VecMath::matrixMultiply<T, N+2, N>(cellGradients, dr);
             const Vec<T, N+2> Ui = Uj + dU;
             const T epsilonSq = LIMITER_K * LIMITER_K * edgeProperty.measure * edgeProperty.measure;
-            const Vec<T, N+2> psi = Limiters<T, N+2>::Venkatakrishnan(Uj, Ui, neighbourhood.extremeValues.first, neighbourhood.extremeValues.second, epsilonSq);
+            const Vec<T, N+2> psi = Limiters<T, N+2>::Apply(LIMITER, Uj, Ui, neighbourhood.extremeValues.first, neighbourhood.extremeValues.second, epsilonSq);
             const Vec<T, N+2> Ulimited = Uj + VecMath::componentwiseMultiply<T, N+2>(psi, dU);
             if (edgeProperty.connectingCells.first == cellIdx) {
                 edgeProperty.reconstructedPushedU.first = Ulimited;
@@ -397,7 +397,7 @@ void Solver<T, N>::reconstructSolutionAtEdgesViaRBFs(const RBFs<T, N>& rbfs)
             }
             const Vec<T, N+2> dU = Ui - Uj;
             const T epsilonSq = LIMITER_K * LIMITER_K * edgeProperty.measure * edgeProperty.measure;
-            const Vec<T, N+2> psi = Limiters<T, N+2>::Venkatakrishnan(Uj, Ui, neighbourhood.extremeValues.first, neighbourhood.extremeValues.second, epsilonSq);
+            const Vec<T, N+2> psi = Limiters<T, N+2>::Apply(LIMITER, Uj, Ui, neighbourhood.extremeValues.first, neighbourhood.extremeValues.second, epsilonSq);
             const Vec<T, N+2> Ulimited = Uj + VecMath::componentwiseMultiply<T, N+2>(psi, dU);
             if (edgeProperty.connectingCells.first == currentCellIdx) {
                 edgeProperty.reconstructedPushedU.first = Ulimited;
