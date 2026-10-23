@@ -2,6 +2,10 @@
 # Reference: https://intellij-support.jetbrains.com/hc/en-us/articles/206544839
 FVM-CFD_Old-1D
 tests
+figures
+rbfKernelStudy.md
+*.md
+tools
 tests/
 # User-specific stuff
 .idea/**/workspace.xml
@@ -123,3 +127,7 @@ external
 # Local developer/agent reference notes; deliberately untracked (not shipped source)
 repositoryReferenceLogForAgents.md
 developerReference.md
+performanceAnalysis.md
+
+# Generated study artifacts (CSV, logs, profile dumps); figures/report are tracked
+results/

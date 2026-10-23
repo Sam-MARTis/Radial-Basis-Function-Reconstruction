@@ -3,6 +3,7 @@ project(RBFs LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+enable_testing()
 
 # ── Glob your sources (re-run cmake when files are added) ──────────────────────
 file(GLOB_RECURSE PROJECT_SOURCES CONFIGURE_DEPENDS
@@ -85,3 +86,31 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
         #        OpenGL::GL
         OpenMP::OpenMP_CXX
 )
+
+# ── Headless kernel checks and comparison study ───────────────────────────────
+option(RBF_BUILD_TOOLS "Build the headless RBF kernel checks and study" ON)
+if (RBF_BUILD_TOOLS)
+    add_executable(kernel_check tools/kernel_check.cpp)
+    target_include_directories(kernel_check PRIVATE include)
+    target_link_libraries(kernel_check PRIVATE Eigen3::Eigen)
+    add_test(NAME kernel_check COMMAND kernel_check)
+
+    add_executable(rbf_kernel_study tools/rbf_kernel_study.cpp src/mesh.cpp)
+    target_include_directories(rbf_kernel_study PRIVATE include)
+    target_link_libraries(rbf_kernel_study PRIVATE Eigen3::Eigen OpenMP::OpenMP_CXX)
+    # The study runs many cells/steps; do not let a Debug configuration make it unusable.
+    target_compile_options(rbf_kernel_study PRIVATE -O3)
+    # The study must survive an inadmissible step so it can report divergence instead
+    # of aborting inside the solver; runSod() checks rho/p positivity after every step.
+    target_compile_definitions(rbf_kernel_study PRIVATE NDEBUG)
+
+    # Same study with the limiter bracket reduced to the immediate stencil (self + one
+    # hop each way). This is the A/B used in rbfKernelStudy.md.
+    add_executable(rbf_kernel_study_lim1 tools/rbf_kernel_study.cpp src/mesh.cpp)
+    target_include_directories(rbf_kernel_study_lim1 PRIVATE include)
+    target_link_libraries(rbf_kernel_study_lim1 PRIVATE Eigen3::Eigen OpenMP::OpenMP_CXX)
+    target_compile_options(rbf_kernel_study_lim1 PRIVATE -O3)
+    target_compile_definitions(rbf_kernel_study_lim1 PRIVATE
+            NDEBUG
+            RBF_LIMITER_NEIGHBOURHOOD_DEPTH_OVERRIDE=1)
+endif()

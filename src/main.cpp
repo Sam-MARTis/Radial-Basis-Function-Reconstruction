@@ -88,15 +88,23 @@ int main()
     solver.prescribeBoundaryConditions(1, BOUNDARY_CONSTRAINT::DIRICHLET, rightState);
     std::cout<<"Boundary conditions prescribed."<<std::endl;
 
-    auto kernel = std::make_unique<WendlandFunction<double, 1>>(KERNEL_SUPPORT_MULTIPLIER*DEFAULT_NEIGHBOURHOOD_DEPTH * DOMAIN_X_MAX/static_cast<double>(numCells));
+    RBF_KERNEL_KIND activeKernel = DEFAULT_RBF_KERNEL;
+    float kernelSupportMultiplier = static_cast<float>(KERNEL_SUPPORT_MULTIPLIER);
+    int limiterBracketDepth = static_cast<int>(LIMITER_NEIGHBOURHOOD_DEPTH);
+    const auto kernelSupportRadius = [&]()
+    {
+        return static_cast<double>(kernelSupportMultiplier) * DEFAULT_NEIGHBOURHOOD_DEPTH *
+               DOMAIN_X_MAX / static_cast<double>(numCells);
+    };
     RBFs<double, 1> rbfs(
         numCells,
         numCells,
         mesh.cells.cellCentersPositions,
-        std::move(kernel)
+        makeRBFKernel<double, 1>(activeKernel, kernelSupportRadius())
         );
     rbfs.computeLocalCellConnectivityMatrix(mesh);
-    std::cout<<"RBFs initialized."<<std::endl;
+    std::cout<<"RBFs initialized with kernel "<<rbfKernelName(activeKernel)
+             <<" (R = "<<rbfs.kernelSupportRadius()<<")."<<std::endl;
 
     const double interfacePosition = 0.5 * DOMAIN_X_MAX;
     riemann::ExactRiemannSolver<double> exactSolution(
@@ -127,6 +135,26 @@ int main()
     double lastValidatedTime = -1.0;
     bool haveStatistics = false;
 
+    // Rebuild the kernel and its per-cell operators, then return to the initial
+    // condition. Switching kernel mid-run would mix two reconstructions, so the
+    // reset is part of the switch.
+    const auto resetSolution = [&]()
+    {
+        Constraint<double, 1>::DirichletCondition(mesh, superDomain, rightState);
+        Constraint<double, 1>::DirichletCondition(mesh, leftHalfDomain, leftState);
+        simTime = 0;
+        lastValidatedTime = -1.0;
+        haveStatistics = false;
+    };
+    const auto rebuildKernel = [&]()
+    {
+        rbfs.setKernel(makeRBFKernel<double, 1>(activeKernel, kernelSupportRadius()));
+        rbfs.computeLocalCellConnectivityMatrix(mesh);
+        resetSolution();
+        std::cout << "Kernel switched to " << rbfKernelName(activeKernel)
+                  << " (R = " << rbfs.kernelSupportRadius() << ")." << std::endl;
+    };
+
     while(window.isOpen()){
         window.clear(sf::Color::Black);
          while (auto event = window.pollEvent()){
@@ -144,7 +172,60 @@ int main()
         // ImGui::SliderInt("Max iterations", reinterpret_cast<int*>(&maxIterationsRBF), 1, 10000);
         // ImGui::Text("Iterations = %d", maxIterationsRBF);
         ImGui::Text("Simulation Time = %.2f", simTime);
-        if (simTime < 3.0)
+
+        const char* kernelItems[] = {
+            rbfKernelName(RBF_KERNEL_KIND::WENDLAND_C0),
+            rbfKernelName(RBF_KERNEL_KIND::WENDLAND_C2),
+            rbfKernelName(RBF_KERNEL_KIND::WENDLAND_C4),
+            rbfKernelName(RBF_KERNEL_KIND::WENDLAND_C6),
+            rbfKernelName(RBF_KERNEL_KIND::WU_C2),
+            rbfKernelName(RBF_KERNEL_KIND::BUMP_CINF),
+        };
+        int kernelIndex = static_cast<int>(activeKernel);
+        bool kernelJustChanged = false;
+        if (ImGui::Combo("RBF kernel", &kernelIndex, kernelItems, IM_ARRAYSIZE(kernelItems)))
+        {
+            activeKernel = static_cast<RBF_KERNEL_KIND>(kernelIndex);
+            rebuildKernel();
+            kernelJustChanged = true;
+        }
+        if (ImGui::SliderFloat("Kernel support / (depth*h)", &kernelSupportMultiplier, 0.1f, 3.0f, "%.2f"))
+        {
+            rebuildKernel();
+            kernelJustChanged = true;
+        }
+        if (ImGui::SliderInt("Limiter bracket depth", &limiterBracketDepth, 1,
+                             static_cast<int>(DEFAULT_NEIGHBOURHOOD_DEPTH)))
+        {
+            Mesh<double, 1>::reinitializeNeighbourhood(mesh, DEFAULT_NEIGHBOURHOOD_DEPTH,
+                                                       static_cast<uint>(limiterBracketDepth));
+            rbfs.computeLocalCellConnectivityMatrix(mesh);
+            resetSolution();
+            kernelJustChanged = true;
+        }
+        ImGui::Text("kernel: %s   R = %.4f (%.2f h)",
+                    rbfKernelName(activeKernel),
+                    rbfs.kernelSupportRadius(),
+                    rbfs.kernelSupportRadius() / (DOMAIN_X_MAX / static_cast<double>(numCells)));
+        ImGui::Text("limiter bracket: %d hop(s); RBF stencil: %u hops",
+                    limiterBracketDepth, DEFAULT_NEIGHBOURHOOD_DEPTH);
+        if (ImGui::Button("Reset solution"))
+        {
+            resetSolution();
+            kernelJustChanged = true;
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Low-oscillation preset"))
+        {
+            activeKernel = RBF_KERNEL_KIND::WENDLAND_C0;
+            kernelSupportMultiplier = 1.9f;
+            limiterBracketDepth = 1;
+            Mesh<double, 1>::reinitializeNeighbourhood(mesh, DEFAULT_NEIGHBOURHOOD_DEPTH, 1);
+            rebuildKernel();
+            kernelJustChanged = true;
+        }
+
+        if (!kernelJustChanged && simTime < 3.0)
         {
             for (uint iter = 0; iter < solverPerRender; iter++)
             {

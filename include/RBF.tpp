@@ -2,6 +2,18 @@
 
 #include <omp.h>
 
+/*
+ * Replace the radial kernel without touching the mesh. The per-cell operator
+ * ALocalInv depends on the kernel, so call computeLocalCellConnectivityMatrix()
+ * afterwards (src/main.cpp does this when the user switches kernel).
+ */
+template <typename T, uint N>
+void RBFs<T, N>::setKernel(std::unique_ptr<Function<T, N>> function)
+{
+    assert(function != nullptr);
+    kernelFunction = std::move(function);
+}
+
 template <typename T, uint N>
 [[deprecated]] void RBFs<T, N>::computeConnectivityMatrix(const Mesh<T, N> &mesh)
 {
@@ -259,7 +271,24 @@ void RBFs<T, N>::computeLocalCellConnectivityMatrix(Mesh<T, N>& mesh)
             }
         }
 
-        neighbourhood.ALocalInv.copyDataFrom(MatrixSolver<T>::inverse(ALocal));
+        const Matrix<T> localInverse = MatrixSolver<T>::inverse(ALocal);
+        bool finite = true;
+        for (const T value : localInverse.data)
+        {
+            if (!std::isfinite(value))
+            {
+                finite = false;
+                break;
+            }
+        }
+        if (!finite)
+        {
+            std::cerr << "Warning: non-finite local RBF inverse for cell " << topCellID
+                      << " (kernel support R = " << kernelFunction->influenceRegion()
+                      << ", stencil = " << numNeighbours
+                      << "). The kernel/support combination is ill-conditioned." << std::endl;
+        }
+        neighbourhood.ALocalInv.copyDataFrom(localInverse);
     }
 }
 

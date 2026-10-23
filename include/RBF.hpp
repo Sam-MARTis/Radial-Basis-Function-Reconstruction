@@ -38,6 +38,9 @@ class RBFs{
     }
     [[deprecated]] void computeConnectivityMatrix(const Mesh<T, N> &mesh);
     void computeLocalCellConnectivityMatrix(Mesh<T, N> &mesh);
+    void setKernel(std::unique_ptr<Function<T, N>> function);
+    [[nodiscard]] const Function<T, N>& kernel() const { return *kernelFunction; }
+    [[nodiscard]] T kernelSupportRadius() const { return kernelFunction->influenceRegion(); }
     void computeCoefficientDerivatives(uint maxIterations, T tolerance);
     [[deprecated]] void computeRBFCoefficients(const std::vector<T>& cellAveragesX, uint maxIterations, T tolerance);
     [[deprecated]]void computeRBFCoefficientsViaDerivatives(const std::vector<T>& cellAveragesX);

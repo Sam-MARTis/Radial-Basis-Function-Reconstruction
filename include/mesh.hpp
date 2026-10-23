@@ -32,6 +32,8 @@ struct Mesh{
     void fixEdgesConnectivityOrder();
     void identifyBoundaryEdgesAndCells(const std::vector<std::pair<uint, std::unique_ptr<Domain<T, N>>>>& boundaryDomains);
     static void initializeNeighbourhood(Mesh<T, N>& mesh, uint rbfDepth, uint extremaDepth);
+    /* Discard and rebuild both stencils; used when the limiter bracket depth changes at runtime. */
+    static void reinitializeNeighbourhood(Mesh<T, N>& mesh, uint rbfDepth, uint extremaDepth);
     static std::vector<Index> collectNeighbourhood(const Mesh<T, N>& mesh, Index cellId, uint depth);
 };
 
@@ -98,6 +100,14 @@ void Mesh<T, N>::initializeNeighbourhood(Mesh<T, N>& mesh, const uint rbfDepth, 
         neighbourhood.ALocalInv.resize(neighbourhood.numNeighbours, neighbourhood.numNeighbours);
         mesh.cells.neighbourhoods.push_back(neighbourhood);
     }
+}
+
+
+template<typename T, uint N>
+void Mesh<T, N>::reinitializeNeighbourhood(Mesh<T, N>& mesh, const uint rbfDepth, const uint extremaDepth)
+{
+    mesh.cells.neighbourhoods.clear();
+    initializeNeighbourhood(mesh, rbfDepth, extremaDepth);
 }
 
 

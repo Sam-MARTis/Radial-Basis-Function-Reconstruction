@@ -15,6 +15,3 @@ Alternatively, we could find partial(x)/partial(u). Since it is linear, I just n
 
 
 
-
-2. 
-
