@@ -58,6 +58,12 @@ constexpr double SMOOTH_EIGENVALUE_MAGNITUDE(const double lambda)
                      (lambdaMagnitude * lambdaMagnitude + EIGENVALUE_SMOOTHENING_DELTA * EIGENVALUE_SMOOTHENING_DELTA);
 }
 
+
+constexpr uint RBF_POLYNOMIAL_TERM_COUNT(const uint dimensions)
+{
+    return dimensions == 1 ? 3u : dimensions + 1u;
+}
+
 constexpr double DOMAIN_X_MAX = 10.0;
 
 constexpr uint DEFAULT_NEIGHBOURHOOD_DEPTH = 3;
@@ -69,4 +75,5 @@ constexpr double KERNEL_SUPPORT_MULTIPLIER = 1.3;
 constexpr double RBF_FIRST_ORDER_BLEND = 0.00;
 constexpr uint USE_RBF_DIRECTLY_FOR_FLUXES = 2;
 constexpr double RBF_SECOND_ORDER_BLEND = 1.0;
+constexpr double RBF_SECOND_DERIVATIVE_LIMIT = 2.0;
 constexpr double CV = 1.0;

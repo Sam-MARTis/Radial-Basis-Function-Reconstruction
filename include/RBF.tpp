@@ -163,8 +163,10 @@ Vec<T, N> RBFs<T, N>::gradientLocal(const Vec<T, N>& point, const std::vector<In
 template <typename T, uint N>
 T RBFs<T, N>::valueLocalPolynomial(const Vec<T, N>& point, const std::vector<Index>& activeRBFIndices,
                                    const std::vector<T>& coefficients,
-                                   const std::vector<T>& polynomialCoefficients) const
+                                   const std::vector<T>& polynomialCoefficients,
+                                   const Vec<T, N>& polynomialAnchor) const
 {
+    const Vec<T, N> local = point - polynomialAnchor;
     T result = polynomialCoefficients.empty() ? 0 : polynomialCoefficients[0];
     for (uint rbfId = 0; rbfId < activeRBFIndices.size(); rbfId++)
     {
@@ -178,7 +180,14 @@ T RBFs<T, N>::valueLocalPolynomial(const Vec<T, N>& point, const std::vector<Ind
     }
     for (uint term = 1; term < polynomialCoefficients.size(); term++)
     {
-        result += polynomialCoefficients[term] * point[term - 1];
+        if (term <= N)
+        {
+            result += polynomialCoefficients[term] * local[term - 1];
+        }
+        else if constexpr (N == 1)
+        {
+            result += polynomialCoefficients[term] * local[0] * local[0];
+        }
     }
     return result;
 }
@@ -187,8 +196,10 @@ template <typename T, uint N>
 Vec<T, N> RBFs<T, N>::gradientLocalPolynomial(const Vec<T, N>& point,
                                               const std::vector<Index>& activeRBFIndices,
                                               const std::vector<T>& coefficients,
-                                              const std::vector<T>& polynomialCoefficients) const
+                                              const std::vector<T>& polynomialCoefficients,
+                                              const Vec<T, N>& polynomialAnchor) const
 {
+    const Vec<T, N> local = point - polynomialAnchor;
     Vec<T, N> result(0);
     for (uint rbfId = 0; rbfId < activeRBFIndices.size(); rbfId++)
     {
@@ -202,7 +213,14 @@ Vec<T, N> RBFs<T, N>::gradientLocalPolynomial(const Vec<T, N>& point,
     }
     for (uint term = 1; term < polynomialCoefficients.size(); term++)
     {
-        result[term - 1] += polynomialCoefficients[term];
+        if (term <= N)
+        {
+            result[term - 1] += polynomialCoefficients[term];
+        }
+        else if constexpr (N == 1)
+        {
+            result[0] += 2 * polynomialCoefficients[term] * local[0];
+        }
     }
     return result;
 }
@@ -262,6 +280,8 @@ void RBFs<T, N>::computeLocalCellConnectivityMatrix(Mesh<T, N>& mesh)
     for (uint topCellID=0; topCellID<numCells; topCellID++)
     {
         Neighbourhood<T, N>& neighbourhood = mesh.cells.neighbourhoods[topCellID];
+        neighbourhood.polynomialAnchor = mesh.cells.cellCentersPositions[topCellID];
+        const Vec<T, N>& polynomialAnchor = neighbourhood.polynomialAnchor;
         const std::vector<Index>& neighbourCellIndices = neighbourhood.neighbourCellIndices;
         const uint numNeighbours = neighbourhood.numNeighbours;
 
@@ -269,9 +289,9 @@ void RBFs<T, N>::computeLocalCellConnectivityMatrix(Mesh<T, N>& mesh)
         // integrating over neighbour cell i, column j is the RBF centred at neighbour cell j.
         // The neighbourhood includes cellID itself, so the cell that owns this matrix is one
         // of the neighbours and its own basis function is part of the local interpolation.
-        // Constant + linear polynomial terms make the fit reproduce both exactly,
-        // which removes the spurious boundary slope of the pure kernel fit.
-        constexpr uint numPolynomialTerms = N + 1;
+        // Constant and linear terms are always present; 1D adds a quadratic term so
+        // the second derivative used by the third-order reconstruction is consistent.
+        const uint numPolynomialTerms = RBF_POLYNOMIAL_TERM_COUNT(N);
         const uint augmentedSize = numNeighbours + numPolynomialTerms;
         Matrix<T> AAugmented(augmentedSize, augmentedSize);
 
@@ -320,10 +340,18 @@ void RBFs<T, N>::computeLocalCellConnectivityMatrix(Mesh<T, N>& mesh)
 
         for (uint i=0; i<numNeighbours; i++)
         {
-            const Vec<T, N>& cellCenter = mesh.cells.cellCentersPositions[neighbourCellIndices[i]];
+            const Vec<T, N> local = mesh.cells.cellCentersPositions[neighbourCellIndices[i]] - polynomialAnchor;
             for (uint term=0; term<numPolynomialTerms; term++)
             {
-                const T basisValue = (term == 0) ? static_cast<T>(1) : cellCenter[term - 1];
+                T basisValue = static_cast<T>(1);
+                if (term > 0 && term <= N)
+                {
+                    basisValue = local[term - 1];
+                }
+                else if (term > N)
+                {
+                    basisValue = local[0] * local[0];
+                }
                 AAugmented(i, numNeighbours + term) = basisValue;
                 AAugmented(numNeighbours + term, i) = basisValue;
             }
@@ -360,7 +388,7 @@ void RBFs<T, N>::updateMeshRBFCoefficients(Mesh<T, N>& mesh)
         const uint numNeighbours = neighbourhood.numNeighbours;
         for (uint fieldVarIdx=0; fieldVarIdx<N+2; fieldVarIdx++)
         {
-            std::vector<T> coeffs(numNeighbours + N + 1, static_cast<T>(0));
+            std::vector<T> coeffs(numNeighbours + RBF_POLYNOMIAL_TERM_COUNT(N), static_cast<T>(0));
             for (uint neighbourCellIdx=0; neighbourCellIdx<numNeighbours; neighbourCellIdx++)
             {
                 coeffs[neighbourCellIdx] = mesh.cells.cellAverages[neighbourCellIndices[neighbourCellIdx]][fieldVarIdx];

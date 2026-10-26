@@ -287,7 +287,7 @@ void Solver<T, N>::updateNeighbourhoodRBFCoefficients()
         // std::array<std::vector<T>, N+2> rbfCoefficients;
         for (uint fieldVarIdx=0; fieldVarIdx<N+2; fieldVarIdx++)
         {
-            std::vector<T> coeffs(numNeighbours + N + 1, static_cast<T>(0));
+            std::vector<T> coeffs(numNeighbours + RBF_POLYNOMIAL_TERM_COUNT(N), static_cast<T>(0));
             for (uint neighbourCellLocalIdx=0; neighbourCellLocalIdx<numNeighbours; neighbourCellLocalIdx++)
             {
                 coeffs[neighbourCellLocalIdx] = localNeighbourAverages[neighbourCellLocalIdx][fieldVarIdx];
@@ -404,6 +404,40 @@ void Solver<T, N>::reconstructSolutionAtEdgesViaRBFs(const RBFs<T, N>& rbfs)
 
         const std::vector<Index>& cellEdgeIndices = mesh.cells.edgeIndices[currentCellIdx];
         const Vec<T, N>& cellCenter = mesh.cells.cellCentersPositions[currentCellIdx];
+
+        // Cell average of R'' from the RBF fit: (R'(right) - R'(left)) / h.
+        std::array<T, N+2> cellSecondDerivative{};
+        T cellAverageDrSq = 0;
+        if constexpr (N == 1)
+        {
+            const T cellWidth = mesh.cells.cellVolumes[currentCellIdx];
+            const auto& stencilIndices = neighbourhood.extremaNeighbourCellIndices;
+            const T stencilWidth = stencilIndices.size() > 1
+                ? std::abs(mesh.cells.cellCentersPositions[stencilIndices.back()][0] -
+                           mesh.cells.cellCentersPositions[stencilIndices.front()][0])
+                : cellWidth;
+            const Vec<T, N>& leftFace = mesh.edges.edgeEvaluationPoints[cellEdgeIndices.front()];
+            const Vec<T, N>& rightFace = mesh.edges.edgeEvaluationPoints[cellEdgeIndices.back()];
+            for (Index fieldIdx = 0; fieldIdx < N+2; fieldIdx++)
+            {
+                const std::vector<T>& fieldCoefficients = neighbourhood.rbfCoefficients[fieldIdx];
+                const std::vector<T>& fieldPolynomialCoefficients = neighbourhood.polynomialCoefficients[fieldIdx];
+                const T leftSlope = rbfs.gradientLocalPolynomial(leftFace, neighbourhood.neighbourCellIndices,
+                                                                 fieldCoefficients, fieldPolynomialCoefficients,
+                                                                 neighbourhood.polynomialAnchor)[0];
+                const T rightSlope = rbfs.gradientLocalPolynomial(rightFace, neighbourhood.neighbourCellIndices,
+                                                                  fieldCoefficients, fieldPolynomialCoefficients,
+                                                                  neighbourhood.polynomialAnchor)[0];
+                const T localRange = neighbourhood.extremeValues.second[fieldIdx] -
+                                     neighbourhood.extremeValues.first[fieldIdx];
+                const T limit = static_cast<T>(RBF_SECOND_DERIVATIVE_LIMIT) * localRange /
+                                std::max(stencilWidth * stencilWidth, cellWidth * cellWidth);
+                cellSecondDerivative[fieldIdx] = std::clamp((rightSlope - leftSlope) / cellWidth,
+                                                            -limit, limit);
+            }
+            cellAverageDrSq = cellWidth * cellWidth / 12;  // <dr^2>; subtracting it preserves the cell average.
+        }
+
         // const Vec<Vec<T, N>, N+2>& cellGradients = mesh.cells.reconstructedCellGradients[currentCellIdx];
         for (Index edgeIdx : cellEdgeIndices)
         {
@@ -415,13 +449,26 @@ void Solver<T, N>::reconstructSolutionAtEdgesViaRBFs(const RBFs<T, N>& rbfs)
             {
                 const std::vector<T>& fieldCoefficients = neighbourhood.rbfCoefficients[fieldIdx];
                 const std::vector<T>& fieldPolynomialCoefficients = neighbourhood.polynomialCoefficients[fieldIdx];
-                if constexpr (USE_RBF_DIRECTLY_FOR_FLUXES==0) Ui[fieldIdx] = rbfs.valueLocalPolynomial(edgeEvaluationPoint, neighbourhood.neighbourCellIndices, fieldCoefficients, fieldPolynomialCoefficients);
-                if constexpr (USE_RBF_DIRECTLY_FOR_FLUXES==1) Ui[fieldIdx] = Uj[fieldIdx] + Vec<T, N>::dot(rbfs.gradientLocalPolynomial(cellCenter, neighbourhood.neighbourCellIndices, fieldCoefficients, fieldPolynomialCoefficients), dr);
+                const T linear = Uj[fieldIdx] + Vec<T, N>::dot(
+                    rbfs.gradientLocalPolynomial(cellCenter, neighbourhood.neighbourCellIndices,
+                                                 fieldCoefficients, fieldPolynomialCoefficients,
+                                                 neighbourhood.polynomialAnchor), dr);
+                T quadratic = 0;
+                if constexpr (N == 1)
+                {
+                    quadratic = 0.5 * cellSecondDerivative[fieldIdx] *
+                                (Vec<T, N>::dot(dr, dr) - cellAverageDrSq);
+                }
+                if constexpr (USE_RBF_DIRECTLY_FOR_FLUXES==0)
+                {
+                    Ui[fieldIdx] = rbfs.valueLocalPolynomial(edgeEvaluationPoint, neighbourhood.neighbourCellIndices, fieldCoefficients, fieldPolynomialCoefficients, neighbourhood.polynomialAnchor);
+                }
+                if constexpr (USE_RBF_DIRECTLY_FOR_FLUXES==1) Ui[fieldIdx] = linear + quadratic;
                 if constexpr (USE_RBF_DIRECTLY_FOR_FLUXES==2)
                 {
-                    const auto Ui1 = Uj[fieldIdx] + Vec<T, N>::dot(rbfs.gradientLocalPolynomial(cellCenter, neighbourhood.neighbourCellIndices, fieldCoefficients, fieldPolynomialCoefficients), dr);
-                    const auto Ui2 = rbfs.valueLocalPolynomial(edgeEvaluationPoint, neighbourhood.neighbourCellIndices, fieldCoefficients, fieldPolynomialCoefficients);
-                    Ui[fieldIdx] = (1.0 - RBF_SECOND_ORDER_BLEND) * Ui2 + RBF_SECOND_ORDER_BLEND * Ui1;
+                    const auto Ui2 = rbfs.valueLocalPolynomial(edgeEvaluationPoint, neighbourhood.neighbourCellIndices, fieldCoefficients, fieldPolynomialCoefficients, neighbourhood.polynomialAnchor);
+                    Ui[fieldIdx] = (1.0 - RBF_SECOND_ORDER_BLEND) * Ui2 +
+                                   RBF_SECOND_ORDER_BLEND * (linear + quadratic);
                 }
             }
             const Vec<T, N+2> Wj = EulerEquations<T, N>::toPrimitive(Uj);

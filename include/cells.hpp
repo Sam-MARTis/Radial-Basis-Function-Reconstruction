@@ -35,6 +35,7 @@ struct Neighbourhood
     std::vector<Index> neighbourCellIndices;
     std::array<std::vector<T>, N+2> rbfCoefficients;
     std::array<std::vector<T>, N+2> polynomialCoefficients;
+    Vec<T, N> polynomialAnchor;
     Matrix<T> ALocalInv;
 
     Index numExtremaNeighbours = 0;

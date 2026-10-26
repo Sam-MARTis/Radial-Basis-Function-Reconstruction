@@ -100,8 +100,9 @@ void Mesh<T, N>::initializeNeighbourhood(Mesh<T, N>& mesh, const uint rbfDepth, 
 
         neighbourhood.rbfCoefficients = std::array<std::vector<T>, N+2>();
         neighbourhood.polynomialCoefficients = std::array<std::vector<T>, N+2>();
-        neighbourhood.ALocalInv.resize(neighbourhood.numNeighbours + N + 1,
-                                       neighbourhood.numNeighbours + N + 1);
+        const uint polynomialTermCount = RBF_POLYNOMIAL_TERM_COUNT(N);
+        neighbourhood.ALocalInv.resize(neighbourhood.numNeighbours + polynomialTermCount,
+                                       neighbourhood.numNeighbours + polynomialTermCount);
         mesh.cells.neighbourhoods.push_back(neighbourhood);
     }
 }

@@ -51,10 +51,12 @@ class RBFs{
     Vec<T, N> gradientLocal(const Vec<T, N>& point, const std::vector<Index>& activeRBFIndices, const std::vector<T>& coefficients) const;
     T valueLocalPolynomial(const Vec<T, N>& point, const std::vector<Index>& activeRBFIndices,
                            const std::vector<T>& coefficients,
-                           const std::vector<T>& polynomialCoefficients) const;
+                           const std::vector<T>& polynomialCoefficients,
+                           const Vec<T, N>& polynomialAnchor) const;
     Vec<T, N> gradientLocalPolynomial(const Vec<T, N>& point, const std::vector<Index>& activeRBFIndices,
                                       const std::vector<T>& coefficients,
-                                      const std::vector<T>& polynomialCoefficients) const;
+                                      const std::vector<T>& polynomialCoefficients,
+                                      const Vec<T, N>& polynomialAnchor) const;
     T integrate(T lb, T ub) const;
 };
 

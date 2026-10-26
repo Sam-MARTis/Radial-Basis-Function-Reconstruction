@@ -24,9 +24,10 @@ C-infinity bump. Limiters: Venkatakrishnan, van Leer, minmod, superbee, MC, van 
 Barth-Jespersen, Koren. The app has kernel, support, limiter and bracket controls.
 
 The local cell-average RBF fit now carries constant and linear polynomial
-reproduction, which removes the spurious boundary slope that produced the density
-dip at x = 0. The limiter is applied to primitive `{rho, u, p}` extrema, which keeps
-the star-region velocity/pressure oscillation under control. See
+reproduction, plus a 1D quadratic term, and the edge reconstruction is a
+mean-preserving quadratic that is third order on smooth data. The limiter is applied
+to primitive `{rho, u, p}` extrema, which keeps the star-region velocity/pressure
+oscillation under control. See [`rbfThirdOrderStudy.md`](rbfThirdOrderStudy.md),
 [`rbfBoundaryDipStudy.md`](rbfBoundaryDipStudy.md) and
 [`rbfX5UndershootStudy.md`](rbfX5UndershootStudy.md).
 
