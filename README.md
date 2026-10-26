@@ -23,6 +23,13 @@ Kernels: Wendland C0/C2/C4/C6 and D4C4, Wu C2/C5, compact exponential/rational, 
 C-infinity bump. Limiters: Venkatakrishnan, van Leer, minmod, superbee, MC, van Albada,
 Barth-Jespersen, Koren. The app has kernel, support, limiter and bracket controls.
 
+The local cell-average RBF fit now carries constant and linear polynomial
+reproduction, which removes the spurious boundary slope that produced the density
+dip at x = 0. The limiter is applied to primitive `{rho, u, p}` extrema, which keeps
+the star-region velocity/pressure oscillation under control. See
+[`rbfBoundaryDipStudy.md`](rbfBoundaryDipStudy.md) and
+[`rbfX5UndershootStudy.md`](rbfX5UndershootStudy.md).
+
 ```bash
 cmake -S . -B cmake-build-debug -DRBF_BUILD_TOOLS=ON
 cmake --build cmake-build-debug --target kernel_check limiter_check rbf_kernel_study -j"$(nproc)"

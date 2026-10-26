@@ -50,6 +50,38 @@ public:
         return p/((gamma-1)*CV*Temp);
     }
 
+    static Vec<T, N+2> toPrimitive(const Vec<T, N+2>& U)
+    {
+        constexpr T gamma = 1.4;
+        Vec<T, N+2> W(0);
+        const T rho = std::max(U[0], static_cast<T>(EPSILON2));
+        W[0] = rho;
+        T speedSq = 0;
+        for (uint i = 0; i < N; i++)
+        {
+            W[1+i] = U[1+i] / rho;
+            speedSq += W[1+i] * W[1+i];
+        }
+        W[N+1] = (gamma - 1) * (U[N+1] - 0.5 * rho * speedSq);
+        return W;
+    }
+
+    static Vec<T, N+2> toConserved(const Vec<T, N+2>& W)
+    {
+        constexpr T gamma = 1.4;
+        Vec<T, N+2> U(0);
+        const T rho = std::max(W[0], static_cast<T>(EPSILON2));
+        U[0] = rho;
+        T speedSq = 0;
+        for (uint i = 0; i < N; i++)
+        {
+            U[1+i] = rho * W[1+i];
+            speedSq += W[1+i] * W[1+i];
+        }
+        U[N+1] = W[N+1] / (gamma - 1) + 0.5 * rho * speedSq;
+        return U;
+    }
+
 
     static Vec<T, N+2> projectToLocalCoordinate(const Vec<T, N+2>& U, const std::array<std::array<T, N>, N>& directionVectors)
     {
@@ -317,7 +349,8 @@ public:
         if (std::abs(deltaM) < EPSILON2) return static_cast<T>(1);
         const T num = (deltaP * deltaP + epsilonSq) * deltaM + 2.0 * deltaM * deltaM * deltaP;
         const T den = deltaM * (deltaP * deltaP + 2.0 * deltaM * deltaM + deltaM * deltaP + epsilonSq);
-        return (std::abs(den) > EPSILON2) ? (num / den) : static_cast<T>(1);
+        if (std::abs(den) <= EPSILON2) return static_cast<T>(1);
+        return std::clamp(num / den, static_cast<T>(0), static_cast<T>(1));
     }
 
     static T VanLeerField(const T deltaM, const T deltaP)

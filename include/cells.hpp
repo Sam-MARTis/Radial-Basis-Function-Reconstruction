@@ -34,11 +34,13 @@ struct Neighbourhood
     Index numNeighbours = 0;
     std::vector<Index> neighbourCellIndices;
     std::array<std::vector<T>, N+2> rbfCoefficients;
+    std::array<std::vector<T>, N+2> polynomialCoefficients;
     Matrix<T> ALocalInv;
 
     Index numExtremaNeighbours = 0;
     std::vector<Index> extremaNeighbourCellIndices;
     std::pair<Vec<T, N+2>, Vec<T, N+2>> extremeValues;
+    std::pair<Vec<T, N+2>, Vec<T, N+2>> primitiveExtremeValues;
 };
 
 template <typename T, uint N>

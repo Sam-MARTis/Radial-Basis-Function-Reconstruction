@@ -45,10 +45,16 @@ class RBFs{
     [[deprecated]] void computeRBFCoefficients(const std::vector<T>& cellAveragesX, uint maxIterations, T tolerance);
     [[deprecated]]void computeRBFCoefficientsViaDerivatives(const std::vector<T>& cellAveragesX);
 
-    void updateMeshRBFCoefficients(const Mesh<T, N> &mesh);
+    void updateMeshRBFCoefficients(Mesh<T, N>& mesh);
     T value(const Vec<T, N>& point) const;
     T valueLocal(const Vec<T, N>& point, const std::vector<Index>& activeRBFIndices, const std::vector<T>& coefficients) const;
     Vec<T, N> gradientLocal(const Vec<T, N>& point, const std::vector<Index>& activeRBFIndices, const std::vector<T>& coefficients) const;
+    T valueLocalPolynomial(const Vec<T, N>& point, const std::vector<Index>& activeRBFIndices,
+                           const std::vector<T>& coefficients,
+                           const std::vector<T>& polynomialCoefficients) const;
+    Vec<T, N> gradientLocalPolynomial(const Vec<T, N>& point, const std::vector<Index>& activeRBFIndices,
+                                      const std::vector<T>& coefficients,
+                                      const std::vector<T>& polynomialCoefficients) const;
     T integrate(T lb, T ub) const;
 };
 

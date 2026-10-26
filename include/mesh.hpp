@@ -99,7 +99,9 @@ void Mesh<T, N>::initializeNeighbourhood(Mesh<T, N>& mesh, const uint rbfDepth, 
         assert(neighbourhood.numExtremaNeighbours >= 1);
 
         neighbourhood.rbfCoefficients = std::array<std::vector<T>, N+2>();
-        neighbourhood.ALocalInv.resize(neighbourhood.numNeighbours, neighbourhood.numNeighbours);
+        neighbourhood.polynomialCoefficients = std::array<std::vector<T>, N+2>();
+        neighbourhood.ALocalInv.resize(neighbourhood.numNeighbours + N + 1,
+                                       neighbourhood.numNeighbours + N + 1);
         mesh.cells.neighbourhoods.push_back(neighbourhood);
     }
 }

@@ -287,12 +287,17 @@ void Solver<T, N>::updateNeighbourhoodRBFCoefficients()
         // std::array<std::vector<T>, N+2> rbfCoefficients;
         for (uint fieldVarIdx=0; fieldVarIdx<N+2; fieldVarIdx++)
         {
-            std::vector<T> coeffs(numNeighbours);
+            std::vector<T> coeffs(numNeighbours + N + 1, static_cast<T>(0));
             for (uint neighbourCellLocalIdx=0; neighbourCellLocalIdx<numNeighbours; neighbourCellLocalIdx++)
             {
                 coeffs[neighbourCellLocalIdx] = localNeighbourAverages[neighbourCellLocalIdx][fieldVarIdx];
             }
-            neighbourhood.rbfCoefficients[fieldVarIdx] = MatrixSolver<T>::matrixStdVectorMultiply(neighbourhood.ALocalInv, coeffs);
+            const std::vector<T> fittedCoefficients =
+                MatrixSolver<T>::matrixStdVectorMultiply(neighbourhood.ALocalInv, coeffs);
+            neighbourhood.rbfCoefficients[fieldVarIdx].assign(
+                fittedCoefficients.begin(), fittedCoefficients.begin() + numNeighbours);
+            neighbourhood.polynomialCoefficients[fieldVarIdx].assign(
+                fittedCoefficients.begin() + numNeighbours, fittedCoefficients.end());
         }
     }
 }
@@ -308,17 +313,24 @@ void Solver<T, N>::updateNeighbourhoodExtremums()
         const uint numExtremaNeighbours = neighbourhood.numExtremaNeighbours;
         Vec<T, N+2>& minU = neighbourhood.extremeValues.first;
         Vec<T, N+2>& maxU = neighbourhood.extremeValues.second;
+        Vec<T, N+2>& minW = neighbourhood.primitiveExtremeValues.first;
+        Vec<T, N+2>& maxW = neighbourhood.primitiveExtremeValues.second;
         for (uint fieldIdx = 0; fieldIdx < N+2; fieldIdx++) {
             minU[fieldIdx] = std::numeric_limits<T>::max();
             maxU[fieldIdx] = std::numeric_limits<T>::lowest();
+            minW[fieldIdx] = std::numeric_limits<T>::max();
+            maxW[fieldIdx] = std::numeric_limits<T>::lowest();
         }
         for (uint neighbourCellLocalIdx=0; neighbourCellLocalIdx<numExtremaNeighbours; neighbourCellLocalIdx++)
         {
             const Vec<T,N+2>& UNeighbour = mesh.cells.cellAverages[extremaNeighbourGlobalIndices[neighbourCellLocalIdx]];
+            const Vec<T,N+2> WNeighbour = EulerEquations<T, N>::toPrimitive(UNeighbour);
             for (uint fieldIdx=0; fieldIdx<N+2; fieldIdx++)
             {
                 if (UNeighbour[fieldIdx] < minU[fieldIdx]) minU[fieldIdx] = UNeighbour[fieldIdx];
                 if (UNeighbour[fieldIdx] > maxU[fieldIdx]) maxU[fieldIdx] = UNeighbour[fieldIdx];
+                if (WNeighbour[fieldIdx] < minW[fieldIdx]) minW[fieldIdx] = WNeighbour[fieldIdx];
+                if (WNeighbour[fieldIdx] > maxW[fieldIdx]) maxW[fieldIdx] = WNeighbour[fieldIdx];
             }
         }
     }
@@ -401,19 +413,33 @@ void Solver<T, N>::reconstructSolutionAtEdgesViaRBFs(const RBFs<T, N>& rbfs)
             Vec<T, N+2> Ui(0);
             for (Index fieldIdx = 0; fieldIdx < N+2; fieldIdx++)
             {
-                if constexpr (USE_RBF_DIRECTLY_FOR_FLUXES==0) Ui[fieldIdx] = rbfs.valueLocal(edgeEvaluationPoint, neighbourhood.neighbourCellIndices, neighbourhood.rbfCoefficients[fieldIdx]);
-                if constexpr (USE_RBF_DIRECTLY_FOR_FLUXES==1) Ui[fieldIdx] = Uj[fieldIdx] + Vec<T, N>::dot(rbfs.gradientLocal(cellCenter, neighbourhood.neighbourCellIndices, neighbourhood.rbfCoefficients[fieldIdx]), dr);
+                const std::vector<T>& fieldCoefficients = neighbourhood.rbfCoefficients[fieldIdx];
+                const std::vector<T>& fieldPolynomialCoefficients = neighbourhood.polynomialCoefficients[fieldIdx];
+                if constexpr (USE_RBF_DIRECTLY_FOR_FLUXES==0) Ui[fieldIdx] = rbfs.valueLocalPolynomial(edgeEvaluationPoint, neighbourhood.neighbourCellIndices, fieldCoefficients, fieldPolynomialCoefficients);
+                if constexpr (USE_RBF_DIRECTLY_FOR_FLUXES==1) Ui[fieldIdx] = Uj[fieldIdx] + Vec<T, N>::dot(rbfs.gradientLocalPolynomial(cellCenter, neighbourhood.neighbourCellIndices, fieldCoefficients, fieldPolynomialCoefficients), dr);
                 if constexpr (USE_RBF_DIRECTLY_FOR_FLUXES==2)
                 {
-                    const auto Ui1 = Uj[fieldIdx] + Vec<T, N>::dot(rbfs.gradientLocal(cellCenter, neighbourhood.neighbourCellIndices, neighbourhood.rbfCoefficients[fieldIdx]), dr);
-                    const auto Ui2 = rbfs.valueLocal(edgeEvaluationPoint, neighbourhood.neighbourCellIndices, neighbourhood.rbfCoefficients[fieldIdx]);
+                    const auto Ui1 = Uj[fieldIdx] + Vec<T, N>::dot(rbfs.gradientLocalPolynomial(cellCenter, neighbourhood.neighbourCellIndices, fieldCoefficients, fieldPolynomialCoefficients), dr);
+                    const auto Ui2 = rbfs.valueLocalPolynomial(edgeEvaluationPoint, neighbourhood.neighbourCellIndices, fieldCoefficients, fieldPolynomialCoefficients);
                     Ui[fieldIdx] = (1.0 - RBF_SECOND_ORDER_BLEND) * Ui2 + RBF_SECOND_ORDER_BLEND * Ui1;
                 }
             }
-            const Vec<T, N+2> dU = Ui - Uj;
+            const Vec<T, N+2> Wj = EulerEquations<T, N>::toPrimitive(Uj);
+            const Vec<T, N+2> Wi = EulerEquations<T, N>::toPrimitive(Ui);
+            const Vec<T, N+2> dW = Wi - Wj;
             const T epsilonSq = LIMITER_K * LIMITER_K * edgeProperty.measure * edgeProperty.measure;
-            const Vec<T, N+2> psi = Limiters<T, N+2>::Apply(limiterKind, Uj, Ui, neighbourhood.extremeValues.first, neighbourhood.extremeValues.second, epsilonSq);
-            const Vec<T, N+2> Ulimited = Uj + VecMath::componentwiseMultiply<T, N+2>(psi, dU);
+            const Vec<T, N+2> psi = Limiters<T, N+2>::Apply(limiterKind, Wj, Wi,
+                                                            neighbourhood.primitiveExtremeValues.first,
+                                                            neighbourhood.primitiveExtremeValues.second,
+                                                            epsilonSq);
+            Vec<T, N+2> Wlimited = Wj + VecMath::componentwiseMultiply<T, N+2>(psi, dW);
+            for (Index fieldIdx = 0; fieldIdx < N+2; fieldIdx++)
+            {
+                Wlimited[fieldIdx] = std::clamp(Wlimited[fieldIdx],
+                                                neighbourhood.primitiveExtremeValues.first[fieldIdx],
+                                                neighbourhood.primitiveExtremeValues.second[fieldIdx]);
+            }
+            const Vec<T, N+2> Ulimited = EulerEquations<T, N>::toConserved(Wlimited);
             if (edgeProperty.connectingCells.first == currentCellIdx) {
                 edgeProperty.reconstructedPushedU.first = Ulimited;
             } else if (edgeProperty.connectingCells.second == currentCellIdx) {

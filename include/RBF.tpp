@@ -161,6 +161,53 @@ Vec<T, N> RBFs<T, N>::gradientLocal(const Vec<T, N>& point, const std::vector<In
 }
 
 template <typename T, uint N>
+T RBFs<T, N>::valueLocalPolynomial(const Vec<T, N>& point, const std::vector<Index>& activeRBFIndices,
+                                   const std::vector<T>& coefficients,
+                                   const std::vector<T>& polynomialCoefficients) const
+{
+    T result = polynomialCoefficients.empty() ? 0 : polynomialCoefficients[0];
+    for (uint rbfId = 0; rbfId < activeRBFIndices.size(); rbfId++)
+    {
+        const Index rbfIndex = activeRBFIndices[rbfId];
+        const Vec<T, N>& rbfCenter = kernelCenters[rbfIndex];
+        const Vec<T, N> diff = point - rbfCenter;
+        if (diff.norm() <= kernelFunction->influenceRegion())
+        {
+            result += coefficients[rbfId] * kernelFunction->value(diff);
+        }
+    }
+    for (uint term = 1; term < polynomialCoefficients.size(); term++)
+    {
+        result += polynomialCoefficients[term] * point[term - 1];
+    }
+    return result;
+}
+
+template <typename T, uint N>
+Vec<T, N> RBFs<T, N>::gradientLocalPolynomial(const Vec<T, N>& point,
+                                              const std::vector<Index>& activeRBFIndices,
+                                              const std::vector<T>& coefficients,
+                                              const std::vector<T>& polynomialCoefficients) const
+{
+    Vec<T, N> result(0);
+    for (uint rbfId = 0; rbfId < activeRBFIndices.size(); rbfId++)
+    {
+        const Index rbfIndex = activeRBFIndices[rbfId];
+        const Vec<T, N>& rbfCenter = kernelCenters[rbfIndex];
+        const Vec<T, N> diff = point - rbfCenter;
+        if (diff.norm() <= kernelFunction->influenceRegion())
+        {
+            result += coefficients[rbfId] * kernelFunction->gradient(diff);
+        }
+    }
+    for (uint term = 1; term < polynomialCoefficients.size(); term++)
+    {
+        result[term - 1] += polynomialCoefficients[term];
+    }
+    return result;
+}
+
+template <typename T, uint N>
 T RBFs<T, N>::integrate(T lb, T ub) const
 {
     assert(N==1);
@@ -222,7 +269,11 @@ void RBFs<T, N>::computeLocalCellConnectivityMatrix(Mesh<T, N>& mesh)
         // integrating over neighbour cell i, column j is the RBF centred at neighbour cell j.
         // The neighbourhood includes cellID itself, so the cell that owns this matrix is one
         // of the neighbours and its own basis function is part of the local interpolation.
-        Matrix<T> ALocal(numNeighbours, numNeighbours);
+        // Constant + linear polynomial terms make the fit reproduce both exactly,
+        // which removes the spurious boundary slope of the pure kernel fit.
+        constexpr uint numPolynomialTerms = N + 1;
+        const uint augmentedSize = numNeighbours + numPolynomialTerms;
+        Matrix<T> AAugmented(augmentedSize, augmentedSize);
 
         for (uint j=0; j<numNeighbours; j++)
         {
@@ -263,11 +314,22 @@ void RBFs<T, N>::computeLocalCellConnectivityMatrix(Mesh<T, N>& mesh)
                     else
                         res = kernelFunction->integrate(lbAbs, ubAbs);
                 }
-                ALocal(i, j) = res/mesh.cells.cellVolumes[cellId];
+                AAugmented(i, j) = res/mesh.cells.cellVolumes[cellId];
             }
         }
 
-        const Matrix<T> localInverse = MatrixSolver<T>::inverse(ALocal);
+        for (uint i=0; i<numNeighbours; i++)
+        {
+            const Vec<T, N>& cellCenter = mesh.cells.cellCentersPositions[neighbourCellIndices[i]];
+            for (uint term=0; term<numPolynomialTerms; term++)
+            {
+                const T basisValue = (term == 0) ? static_cast<T>(1) : cellCenter[term - 1];
+                AAugmented(i, numNeighbours + term) = basisValue;
+                AAugmented(numNeighbours + term, i) = basisValue;
+            }
+        }
+
+        const Matrix<T> localInverse = MatrixSolver<T>::inverse(AAugmented);
         bool finite = true;
         for (const T value : localInverse.data)
         {
@@ -289,30 +351,26 @@ void RBFs<T, N>::computeLocalCellConnectivityMatrix(Mesh<T, N>& mesh)
 }
 
 template <typename T, uint N>
-void RBFs<T, N>::updateMeshRBFCoefficients(const Mesh<T, N>& mesh)
+void RBFs<T, N>::updateMeshRBFCoefficients(Mesh<T, N>& mesh)
 {
     for (Index cellId = 0; cellId<mesh.numCells; cellId++)
     {
-        const Neighbourhood<T, N>& neighbourhood = mesh.cells.neighbourhoods[cellId];
+        Neighbourhood<T, N>& neighbourhood = mesh.cells.neighbourhoods[cellId];
         const std::vector<Index>& neighbourCellIndices = neighbourhood.neighbourCellIndices;
         const uint numNeighbours = neighbourhood.numNeighbours;
-        std::vector<Vec<T, N+1>> cellAverages(numNeighbours);
-        for (uint neighbourCellIdx=0; neighbourCellIdx<numNeighbours; neighbourCellIdx++)
-        {
-            const Index neighbourCellId = neighbourCellIndices[neighbourCellIdx];
-            cellAverages[neighbourCellIdx] = mesh.cells.cellAverages[neighbourCellId][0];
-        }
-        // std::array<std::vector<T>, N+2> rbfCoefficients;
         for (uint fieldVarIdx=0; fieldVarIdx<N+2; fieldVarIdx++)
         {
-            std::vector<T> coeffs(numNeighbours);
+            std::vector<T> coeffs(numNeighbours + N + 1, static_cast<T>(0));
             for (uint neighbourCellIdx=0; neighbourCellIdx<numNeighbours; neighbourCellIdx++)
             {
-                coeffs[neighbourCellIdx] = cellAverages[neighbourCellIdx][fieldVarIdx];
+                coeffs[neighbourCellIdx] = mesh.cells.cellAverages[neighbourCellIndices[neighbourCellIdx]][fieldVarIdx];
             }
-            neighbourhood.rbfCoefficients[fieldVarIdx] = MatrixSolver<T>::matrixStdVectorMultiply(neighbourhood.ALocalInv, coeffs);
+            const std::vector<T> fittedCoefficients =
+                MatrixSolver<T>::matrixStdVectorMultiply(neighbourhood.ALocalInv, coeffs);
+            neighbourhood.rbfCoefficients[fieldVarIdx].assign(
+                fittedCoefficients.begin(), fittedCoefficients.begin() + numNeighbours);
+            neighbourhood.polynomialCoefficients[fieldVarIdx].assign(
+                fittedCoefficients.begin() + numNeighbours, fittedCoefficients.end());
         }
-        // mesh.cells.neighbourhoods[cellId].rbfCoefficients = rbfCoefficients;
-        // mesh.cells.neighbourhoods[cellId].rbfCoefficients = rbfCoefficients;
     }
 }
