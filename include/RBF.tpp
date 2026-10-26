@@ -2,11 +2,7 @@
 
 #include <omp.h>
 
-/*
- * Replace the radial kernel without touching the mesh. The per-cell operator
- * ALocalInv depends on the kernel, so call computeLocalCellConnectivityMatrix()
- * afterwards (src/main.cpp does this when the user switches kernel).
- */
+// Rebuild ALocalInv after changing the kernel.
 template <typename T, uint N>
 void RBFs<T, N>::setKernel(std::unique_ptr<Function<T, N>> function)
 {

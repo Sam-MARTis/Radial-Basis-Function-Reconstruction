@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cmath>
 #include <iostream>
+#include <vector>
 
 enum class DerivedQuantitiesIndices: uint{
     PRESSURE,
@@ -304,38 +305,81 @@ public:
 template <typename T, uint N>
 class Limiters
 {
-    // psi multiplies deltaM: Ulimited = Uj + psi * deltaM. See developerReference.md.
 public:
+    static T Ratio(const T deltaM, const T deltaP)
+    {
+        if (std::abs(deltaP) < static_cast<T>(EPSILON2)) return static_cast<T>(0);
+        return deltaM / deltaP;
+    }
+
     static T VenkatakrishnanField(const T deltaM, const T deltaP, const T epsilonSq)
     {
-        if (std::abs(deltaM) < EPSILON2)
-        {
-            return static_cast<T>(1);
-        }
+        if (std::abs(deltaM) < EPSILON2) return static_cast<T>(1);
         const T num = (deltaP * deltaP + epsilonSq) * deltaM + 2.0 * deltaM * deltaM * deltaP;
         const T den = deltaM * (deltaP * deltaP + 2.0 * deltaM * deltaM + deltaM * deltaP + epsilonSq);
         return (std::abs(den) > EPSILON2) ? (num / den) : static_cast<T>(1);
     }
 
-    // Van Leer: psi = phi(r)/r, phi(r) = (r + |r|)/(1 + |r|), r = deltaM/deltaP.
     static T VanLeerField(const T deltaM, const T deltaP)
     {
-        if (std::abs(deltaM) < EPSILON2)
-        {
-            return static_cast<T>(1);
-        }
+        if (std::abs(deltaM) < EPSILON2) return static_cast<T>(1);
         const T den = std::abs(deltaP) + std::abs(deltaM);
-        if (den < EPSILON2)
-        {
-            return static_cast<T>(0);
-        }
-        // sign(deltaM) * deltaP: +|deltaP| for a monotone stencil, negative at extrema.
+        if (den < EPSILON2) return static_cast<T>(0);
         const T alignedDeltaP = (deltaM > 0) ? deltaP : -deltaP;
         const T num = static_cast<T>(2) * std::max(alignedDeltaP, static_cast<T>(0));
-        const T psi = num / den;
         constexpr T psiMax = VAN_LEER_MONOTONE ? static_cast<T>(1) : static_cast<T>(2);
-        // Exact range is [0, 2)
-        return std::clamp(psi, static_cast<T>(0), psiMax);
+        return std::clamp(num / den, static_cast<T>(0), psiMax);
+    }
+
+    static T MinmodField(const T deltaM, const T deltaP)
+    {
+        if (std::abs(deltaM) < EPSILON2) return static_cast<T>(1);
+        const T r = Ratio(deltaM, deltaP);
+        return r > 0 ? std::min(static_cast<T>(1), r) : static_cast<T>(0);
+    }
+
+    static T SuperbeeField(const T deltaM, const T deltaP)
+    {
+        if (std::abs(deltaM) < EPSILON2) return static_cast<T>(1);
+        const T r = Ratio(deltaM, deltaP);
+        return std::max(static_cast<T>(0),
+                        std::max(std::min(static_cast<T>(2) * r, static_cast<T>(1)),
+                                 std::min(r, static_cast<T>(2))));
+    }
+
+    static T McField(const T deltaM, const T deltaP)
+    {
+        if (std::abs(deltaM) < EPSILON2) return static_cast<T>(1);
+        const T r = Ratio(deltaM, deltaP);
+        return std::max(static_cast<T>(0),
+                        std::min(static_cast<T>(2) * r,
+                                 std::min(static_cast<T>(0.5) * (static_cast<T>(1) + r),
+                                          static_cast<T>(2))));
+    }
+
+    static T VanAlbadaField(const T deltaM, const T deltaP)
+    {
+        if (std::abs(deltaM) < EPSILON2) return static_cast<T>(1);
+        const T r = Ratio(deltaM, deltaP);
+        if (r <= 0) return static_cast<T>(0);
+        return (r * r + r) / (r * r + static_cast<T>(1));
+    }
+
+    static T KorenField(const T deltaM, const T deltaP)
+    {
+        if (std::abs(deltaM) < EPSILON2) return static_cast<T>(1);
+        const T r = Ratio(deltaM, deltaP);
+        return std::max(static_cast<T>(0),
+                        std::min(static_cast<T>(2) * r,
+                                 std::min((static_cast<T>(1) + static_cast<T>(2) * r) / static_cast<T>(3),
+                                          static_cast<T>(2))));
+    }
+
+    static T BarthJespersenField(const T deltaM, const T deltaP)
+    {
+        if (std::abs(deltaM) < EPSILON2) return static_cast<T>(1);
+        if (deltaP <= static_cast<T>(0)) return static_cast<T>(0);
+        return std::min(static_cast<T>(1), deltaP / std::abs(deltaM));
     }
 
     static T ApplyField(const LIMITER_KIND kind, const T deltaM, const T deltaP, const T epsilonSq)
@@ -345,17 +389,21 @@ public:
             case LIMITER_KIND::NO_LIMITER:      return static_cast<T>(1);
             case LIMITER_KIND::VAN_LEER:        return VanLeerField(deltaM, deltaP);
             case LIMITER_KIND::VENKATAKRISHNAN: return VenkatakrishnanField(deltaM, deltaP, epsilonSq);
+            case LIMITER_KIND::MINMOD:          return MinmodField(deltaM, deltaP);
+            case LIMITER_KIND::SUPERBEE:        return SuperbeeField(deltaM, deltaP);
+            case LIMITER_KIND::MC:              return McField(deltaM, deltaP);
+            case LIMITER_KIND::VAN_ALBADA:      return VanAlbadaField(deltaM, deltaP);
+            case LIMITER_KIND::BARTH_JESPERSEN: return BarthJespersenField(deltaM, deltaP);
+            case LIMITER_KIND::KOREN:           return KorenField(deltaM, deltaP);
             default:                            return static_cast<T>(1);
         }
     }
 
-    /* Legacy: component-wise Venkatakrishnan. Prefer Apply(). */
     [[deprecated]] static Vec<T, N> Venkatakrishnan(const Vec<T, N>& Uj, const Vec<T, N>& Ui, const Vec<T, N>& Umin, const Vec<T, N>& Umax, T epsilonSq)
     {
         return Apply(LIMITER_KIND::VENKATAKRISHNAN, Uj, Ui, Umin, Umax, epsilonSq);
     }
 
-    // Component-wise dispatch; deltaP must stay non-negative.
     static Vec<T, N> Apply(const LIMITER_KIND kind, const Vec<T, N>& Uj, const Vec<T, N>& Ui, const Vec<T, N>& Umin, const Vec<T, N>& Umax, T epsilonSq)
     {
         Vec<T, N> psi(0);
@@ -367,8 +415,54 @@ public:
         }
         return psi;
     }
-
 };
+
+inline const char* limiterName(const LIMITER_KIND kind)
+{
+    switch (kind)
+    {
+        case LIMITER_KIND::NO_LIMITER: return "None";
+        case LIMITER_KIND::VENKATAKRISHNAN: return "Venkatakrishnan";
+        case LIMITER_KIND::VAN_LEER: return "Van Leer";
+        case LIMITER_KIND::MINMOD: return "Minmod";
+        case LIMITER_KIND::SUPERBEE: return "Superbee";
+        case LIMITER_KIND::MC: return "MC";
+        case LIMITER_KIND::VAN_ALBADA: return "Van Albada";
+        case LIMITER_KIND::BARTH_JESPERSEN: return "Barth-Jespersen";
+        case LIMITER_KIND::KOREN: return "Koren";
+        default: return "unknown";
+    }
+}
+
+inline const char* limiterShortName(const LIMITER_KIND kind)
+{
+    switch (kind)
+    {
+        case LIMITER_KIND::NO_LIMITER: return "none";
+        case LIMITER_KIND::VENKATAKRISHNAN: return "venkatakrishnan";
+        case LIMITER_KIND::VAN_LEER: return "van_leer";
+        case LIMITER_KIND::MINMOD: return "minmod";
+        case LIMITER_KIND::SUPERBEE: return "superbee";
+        case LIMITER_KIND::MC: return "mc";
+        case LIMITER_KIND::VAN_ALBADA: return "van_albada";
+        case LIMITER_KIND::BARTH_JESPERSEN: return "barth_jespersen";
+        case LIMITER_KIND::KOREN: return "koren";
+        default: return "unknown";
+    }
+}
+
+inline std::vector<LIMITER_KIND> allLimiterKinds()
+{
+    return {LIMITER_KIND::NO_LIMITER,
+            LIMITER_KIND::VENKATAKRISHNAN,
+            LIMITER_KIND::VAN_LEER,
+            LIMITER_KIND::MINMOD,
+            LIMITER_KIND::SUPERBEE,
+            LIMITER_KIND::MC,
+            LIMITER_KIND::VAN_ALBADA,
+            LIMITER_KIND::BARTH_JESPERSEN,
+            LIMITER_KIND::KOREN};
+}
 
 /// END Limiters
 

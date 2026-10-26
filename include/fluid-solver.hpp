@@ -14,6 +14,7 @@ class Solver
     uint numberOfEdges;
     std::vector<std::pair<BOUNDARY_CONSTRAINT, Vec<T, N+2>>> boundaryConditions;
     T a;
+    LIMITER_KIND limiterKind = LIMITER;
     // [[nodiscard]] [[deprecated]] bool verifyDomainIntegrity() const;
     void calculateFluxes();
     // [[deprecated]] void calculateRBFBasedFluxes(const RBFs<T, N>& rbfs, T dt);
@@ -26,6 +27,8 @@ class Solver
     void updateNeighbourhoodExtremums();
     void prescribeBoundaryConditions(uint boundaryIndex, BOUNDARY_CONSTRAINT boundaryType, Vec<T, N+2> boundaryValue);
     void prescribeBoundaryConditions(uint boundaryIndex, BOUNDARY_CONSTRAINT boundaryType);
+    void setLimiter(LIMITER_KIND kind) { limiterKind = kind; }
+    [[nodiscard]] LIMITER_KIND limiter() const { return limiterKind; }
     // void prescribeBoundaryConditions(uint boundaryIndex, BOUNDARY_CONSTRAINT boundaryType);
 
     Solver(Mesh<T, N>& mesh);

@@ -135,9 +135,7 @@ int main()
     double lastValidatedTime = -1.0;
     bool haveStatistics = false;
 
-    // Rebuild the kernel and its per-cell operators, then return to the initial
-    // condition. Switching kernel mid-run would mix two reconstructions, so the
-    // reset is part of the switch.
+    // Kernel changes reset the run.
     const auto resetSolution = [&]()
     {
         Constraint<double, 1>::DirichletCondition(mesh, superDomain, rightState);
@@ -180,6 +178,10 @@ int main()
             rbfKernelName(RBF_KERNEL_KIND::WENDLAND_C6),
             rbfKernelName(RBF_KERNEL_KIND::WU_C2),
             rbfKernelName(RBF_KERNEL_KIND::BUMP_CINF),
+            rbfKernelName(RBF_KERNEL_KIND::WENDLAND_D4_C4),
+            rbfKernelName(RBF_KERNEL_KIND::WU_C5),
+            rbfKernelName(RBF_KERNEL_KIND::COMPACT_EXP),
+            rbfKernelName(RBF_KERNEL_KIND::COMPACT_RATIONAL),
         };
         int kernelIndex = static_cast<int>(activeKernel);
         bool kernelJustChanged = false;
@@ -192,6 +194,24 @@ int main()
         if (ImGui::SliderFloat("Kernel support / (depth*h)", &kernelSupportMultiplier, 0.1f, 3.0f, "%.2f"))
         {
             rebuildKernel();
+            kernelJustChanged = true;
+        }
+        const char* limiterItems[] = {
+            limiterName(LIMITER_KIND::NO_LIMITER),
+            limiterName(LIMITER_KIND::VENKATAKRISHNAN),
+            limiterName(LIMITER_KIND::VAN_LEER),
+            limiterName(LIMITER_KIND::MINMOD),
+            limiterName(LIMITER_KIND::SUPERBEE),
+            limiterName(LIMITER_KIND::MC),
+            limiterName(LIMITER_KIND::VAN_ALBADA),
+            limiterName(LIMITER_KIND::BARTH_JESPERSEN),
+            limiterName(LIMITER_KIND::KOREN),
+        };
+        int limiterIndex = static_cast<int>(solver.limiter());
+        if (ImGui::Combo("Limiter", &limiterIndex, limiterItems, IM_ARRAYSIZE(limiterItems)))
+        {
+            solver.setLimiter(static_cast<LIMITER_KIND>(limiterIndex));
+            resetSolution();
             kernelJustChanged = true;
         }
         if (ImGui::SliderInt("Limiter bracket depth", &limiterBracketDepth, 1,
@@ -207,8 +227,9 @@ int main()
                     rbfKernelName(activeKernel),
                     rbfs.kernelSupportRadius(),
                     rbfs.kernelSupportRadius() / (DOMAIN_X_MAX / static_cast<double>(numCells)));
-        ImGui::Text("limiter bracket: %d hop(s); RBF stencil: %u hops",
-                    limiterBracketDepth, DEFAULT_NEIGHBOURHOOD_DEPTH);
+        ImGui::Text("limiter: %s   bracket: %d hop(s)   RBF stencil: %u hops",
+                    limiterName(solver.limiter()), limiterBracketDepth,
+                    DEFAULT_NEIGHBOURHOOD_DEPTH);
         if (ImGui::Button("Reset solution"))
         {
             resetSolution();
@@ -217,9 +238,10 @@ int main()
         ImGui::SameLine();
         if (ImGui::Button("Low-oscillation preset"))
         {
-            activeKernel = RBF_KERNEL_KIND::WENDLAND_C0;
+            activeKernel = RBF_KERNEL_KIND::WENDLAND_C4;
             kernelSupportMultiplier = 1.9f;
             limiterBracketDepth = 1;
+            solver.setLimiter(LIMITER_KIND::MINMOD);
             Mesh<double, 1>::reinitializeNeighbourhood(mesh, DEFAULT_NEIGHBOURHOOD_DEPTH, 1);
             rebuildKernel();
             kernelJustChanged = true;

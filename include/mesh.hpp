@@ -32,7 +32,6 @@ struct Mesh{
     void fixEdgesConnectivityOrder();
     void identifyBoundaryEdgesAndCells(const std::vector<std::pair<uint, std::unique_ptr<Domain<T, N>>>>& boundaryDomains);
     static void initializeNeighbourhood(Mesh<T, N>& mesh, uint rbfDepth, uint extremaDepth);
-    /* Discard and rebuild both stencils; used when the limiter bracket depth changes at runtime. */
     static void reinitializeNeighbourhood(Mesh<T, N>& mesh, uint rbfDepth, uint extremaDepth);
     static std::vector<Index> collectNeighbourhood(const Mesh<T, N>& mesh, Index cellId, uint depth);
 };
@@ -40,10 +39,13 @@ struct Mesh{
 class MeshGenerator{
     uint dimensions;
     uint numberOfCells;
+    uint limiterDepth;
     MeshType meshType;
-    Vec<double, 2> domainBounds; // xMin, xMax
+    Vec<double, 2> domainBounds;
     public:
-    MeshGenerator(uint _dimensions, Vec<double, 2> _domainBounds, uint _numberOfCells, MeshType _meshType = MeshType::CARTESIAN);
+    MeshGenerator(uint _dimensions, Vec<double, 2> _domainBounds, uint _numberOfCells,
+                  MeshType _meshType = MeshType::CARTESIAN,
+                  uint _limiterDepth = LIMITER_NEIGHBOURHOOD_DEPTH);
     Mesh<double, 1> generateMesh();
 };
 

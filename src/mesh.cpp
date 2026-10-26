@@ -2,8 +2,10 @@
 #include "vec.hpp"
 #include "fluid-solver.hpp"
 
-MeshGenerator::MeshGenerator(uint _dimensions, Vec<double, 2> _domainBounds, uint _numberOfCells, MeshType _meshType)
-    : dimensions(_dimensions), domainBounds(_domainBounds), numberOfCells(_numberOfCells), meshType(_meshType)
+MeshGenerator::MeshGenerator(uint _dimensions, Vec<double, 2> _domainBounds, uint _numberOfCells,
+                             MeshType _meshType, uint _limiterDepth)
+    : dimensions(_dimensions), numberOfCells(_numberOfCells), limiterDepth(_limiterDepth),
+      meshType(_meshType), domainBounds(_domainBounds)
 {
     assert(dimensions ==1); // Will implement 2D and 3D later.
     // assert(dimensions > 0 && dimensions <= 3);
@@ -51,6 +53,6 @@ Mesh<double, 1> MeshGenerator::generateMesh()
     mesh.numEdges = mesh.edges.edgeProperty.size();
     mesh.boundingBox.first = Vec<double, 1>{domainBounds[0]};
     mesh.boundingBox.second = Vec<double, 1>{domainBounds[1]};
-    Mesh<double, 1>::initializeNeighbourhood(mesh, DEFAULT_NEIGHBOURHOOD_DEPTH, LIMITER_NEIGHBOURHOOD_DEPTH);
+    Mesh<double, 1>::initializeNeighbourhood(mesh, DEFAULT_NEIGHBOURHOOD_DEPTH, limiterDepth);
     return mesh;
 }
