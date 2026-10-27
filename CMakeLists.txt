@@ -72,6 +72,10 @@ target_include_directories(${PROJECT_NAME} PRIVATE
         ${IMPLOT_DIR}
 )
 
+target_compile_definitions(${PROJECT_NAME} PRIVATE
+        SOD_DATA_PATH="${CMAKE_SOURCE_DIR}/data/sod_shock_tube.csv"
+)
+
 target_link_libraries(${PROJECT_NAME} PRIVATE
         SFML::Graphics
         SFML::Window
@@ -99,6 +103,15 @@ if (RBF_BUILD_TOOLS)
     target_include_directories(limiter_check PRIVATE include)
     target_link_libraries(limiter_check PRIVATE Eigen3::Eigen)
     add_test(NAME limiter_check COMMAND limiter_check)
+
+    add_executable(sod_validation tools/sod_validation.cpp src/mesh.cpp)
+    target_include_directories(sod_validation PRIVATE include)
+    target_link_libraries(sod_validation PRIVATE Eigen3::Eigen OpenMP::OpenMP_CXX)
+    target_compile_options(sod_validation PRIVATE -O3)
+    target_compile_definitions(sod_validation PRIVATE
+            NDEBUG
+            SOD_DATA_PATH="${CMAKE_SOURCE_DIR}/data/sod_shock_tube.csv"
+    )
 
     add_executable(rbf_kernel_study tools/rbf_kernel_study.cpp src/mesh.cpp)
     target_include_directories(rbf_kernel_study PRIVATE include)

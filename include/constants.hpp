@@ -7,7 +7,7 @@ using Index = uint;
 using EigenMatrix = Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
 
 constexpr double DEFAULT_SCREEN_WIDTH = 1600;
-constexpr double DEFAULT_SCREEN_HEIGHT = 800;
+constexpr double DEFAULT_SCREEN_HEIGHT = 1000;
 
 constexpr double EPSILON1 = 1e-12;
 constexpr double EPSILON2 = 1e-8;
@@ -57,6 +57,7 @@ constexpr double SMOOTH_EIGENVALUE_MAGNITUDE(const double lambda)
                : (1.0 / (2 * EIGENVALUE_SMOOTHENING_DELTA)) *
                      (lambdaMagnitude * lambdaMagnitude + EIGENVALUE_SMOOTHENING_DELTA * EIGENVALUE_SMOOTHENING_DELTA);
 }
+
 
 
 constexpr uint RBF_POLYNOMIAL_TERM_COUNT(const uint dimensions)

@@ -43,3 +43,21 @@ cmake --build cmake-build-debug --target kernel_check limiter_check rbf_kernel_s
 Reports: [`rbfKernelStudy.md`](rbfKernelStudy.md),
 [`rbfKernelLimiterStudy.md`](rbfKernelLimiterStudy.md). Raw results are under
 `results/` (gitignored).
+
+## Sod benchmark validation
+
+`data/sod_shock_tube.csv` is the NASA NPARC Alliance shock-tube reference profile
+(`stp.dx`, `str.dx`, `stu.dx`, `stm.dx` from the
+[NPARC validation archive](https://www.grc.nasa.gov/WWW/wind/valid/stube/stube.html)).
+`include/sod_shock_tube.hpp` loads the CSV and its metadata, `include/sod_simulation.hpp`
+runs the 1D Euler solver with the standard Sod states and transmissive ends, and
+`include/sod_validation.hpp` compares the cell solution at the published data points.
+The app no longer uses the exact Riemann solver for validation.
+
+```bash
+cmake -S . -B cmake-build-debug -DRBF_BUILD_TOOLS=ON
+cmake --build cmake-build-debug --target RBFs sod_validation -j"$(nproc)"
+./cmake-build-debug/RBFs
+./cmake-build-debug/sod_validation --cells 50,100,200,400 \
+    --out results/sod_validation
+```

@@ -1,0 +1,36 @@
+# source=NASA NPARC Alliance Verification and Validation Archive, Shock Tube case
+# source_url=https://www.grc.nasa.gov/WWW/wind/valid/stube/stube.html
+# data_urls=https://www.grc.nasa.gov/WWW/wind/valid/stube/stp.dx,str.dx,stu.dx,stm.dx
+# reference=stubex.f, following Anderson, Modern Compressible Flow (1984)
+# notes=reference solution; duplicate x at contact and shock averaged
+# gamma=1.4
+# time_s=0.2
+# domain_length_m=1.0
+# interface_x_m=0.5
+# left_rho=1.0
+# left_u=0.0
+# left_p=1.0
+# right_rho=0.125
+# right_u=0.0
+# right_p=0.1
+# shock_x_m=0.850431
+# contact_x_m=0.685490
+# columns=x,rho,u,p,mach
+x,rho,u,p,mach
+0.000000,1.000000,0.000000,1.000000,0.000000
+0.263357,1.000000,0.000000,1.000000,0.000000
+0.281906,0.936364,0.077288,0.912059,0.066185
+0.300455,0.876011,0.154575,0.830832,0.134145
+0.319004,0.818810,0.231863,0.755886,0.203953
+0.337553,0.764637,0.309151,0.686811,0.275686
+0.356102,0.713370,0.386439,0.623219,0.349425
+0.374651,0.664890,0.463726,0.564742,0.425253
+0.393200,0.619083,0.541014,0.511032,0.503263
+0.411749,0.575836,0.618302,0.461762,0.583548
+0.430298,0.535040,0.695589,0.416621,0.666211
+0.448847,0.496590,0.772877,0.375316,0.751358
+0.467396,0.460383,0.850165,0.337572,0.839103
+0.485945,0.426319,0.927453,0.303130,0.929567
+0.685490,0.345946,0.927453,0.303130,0.831623
+0.850431,0.195287,0.463726,0.201565,0.366839
+1.000000,0.125000,0.000000,0.100000,0.000000
